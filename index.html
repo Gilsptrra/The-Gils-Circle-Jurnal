@@ -1,0 +1,3527 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#090a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Journal Trader" />
+  <title>Trading Journal &amp; SOP — The Gil's Circle</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/jpeg" href="./logo-gc.jpg" />
+  <link rel="apple-touch-icon" href="./logo-gc.jpg" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome 6.5.1 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Chart.js 4.4.0, localForage 1.10.0, SheetJS 0.18.5 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+
+  <style>
+    :root {
+      --bg: #090a0f;
+      --bg-subtle: #11131c;
+      --card: #151824;
+      --card-hover: #1a1e2e;
+
+      --border: rgba(255, 255, 255, .08);
+      --border-hover: rgba(255, 255, 255, .16);
+
+      --fg: #f3f4f6;
+      --fg-subtle: #9ca3af;
+      --muted: #6b7280;
+
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, .25);
+      --accent-bg: rgba(99, 102, 241, .12);
+
+      --profit: #10b981;
+      --profit-bg: rgba(16, 185, 129, .12);
+
+      --loss: #f43f5e;
+      --loss-bg: rgba(244, 63, 94, .12);
+
+      --warn: #f59e0b;
+      --warn-bg: rgba(245, 158, 11, .12);
+
+      --blue: #3b82f6;
+      --blue-bg: rgba(59, 130, 246, .12);
+
+      --purple: #a855f7;
+      --purple-bg: rgba(168, 85, 247, .12);
+
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+
+      --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, .5);
+
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--fg);
+      overflow-x: hidden;
+      padding-bottom: calc(88px + var(--safe-bottom));
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Custom thin scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .14);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, .26);
+    }
+
+    /* Fixed Ambient Glows & Dot Grid */
+    .bg-blobs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.42;
+      pointer-events: none;
+    }
+
+    .blob-indigo {
+      width: 440px;
+      height: 440px;
+      top: -120px;
+      left: -120px;
+      background: rgba(99, 102, 241, 0.42);
+    }
+
+    .blob-emerald {
+      width: 420px;
+      height: 420px;
+      top: 34%;
+      right: -140px;
+      background: rgba(16, 185, 129, 0.28);
+    }
+
+    .blob-purple {
+      width: 480px;
+      height: 480px;
+      bottom: -160px;
+      left: 24%;
+      background: rgba(168, 85, 247, 0.28);
+    }
+
+    .bg-dots {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.085) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.25));
+    }
+
+    /* Sticky Header */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      padding-top: var(--safe-top);
+      background: rgba(9, 10, 15, 0.72);
+      backdrop-filter: blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex-shrink: 0;
+    }
+
+    .brand-logo {
+      width: 30px;
+      height: 30px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border-hover);
+      flex-shrink: 0;
+      background: #000000;
+    }
+
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--profit);
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse-dot 2.2s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse-dot {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.75);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 9px rgba(16, 185, 129, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    .brand-title {
+      font-size: 0.98rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      padding: 2px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: 2px;
+    }
+
+    .header-actions::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Buttons */
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-weight: 600;
+      font-size: 0.84rem;
+      white-space: nowrap;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: #ffffff;
+      padding: 9px 15px;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 6px 20px -4px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px -3px rgba(99, 102, 241, 0.42);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      background: var(--card-hover);
+      border-color: var(--border-hover);
+    }
+
+    .btn-danger {
+      background: var(--loss-bg);
+      color: #fda4af;
+      border: 1px solid rgba(244, 63, 94, 0.28);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: rgba(244, 63, 94, 0.22);
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--fg-subtle);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .btn-icon:hover:not(:disabled) {
+      color: var(--fg);
+      background: var(--card-hover);
+      border-color: var(--border-hover);
+    }
+
+    .btn-xs {
+      height: 30px;
+      padding: 0 10px;
+      font-size: 0.76rem;
+      border-radius: 8px;
+    }
+
+    /* Main Container */
+    .main-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Library Error Banner */
+    .lib-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(244, 63, 94, 0.14);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      color: #fecdd3;
+      font-size: 0.86rem;
+    }
+
+    .lib-banner.show {
+      display: flex;
+    }
+    /* Sync Status Bar */
+    .sync-bar-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .sync-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--fg-subtle);
+      font-size: 0.8rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-card);
+    }
+
+    .sync-pill:hover {
+      border-color: var(--border-hover);
+      color: var(--fg);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.green { background: var(--profit); box-shadow: 0 0 8px var(--profit); }
+    .status-dot.red { background: var(--loss); box-shadow: 0 0 8px var(--loss); }
+    .status-dot.yellow { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+
+    .quick-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip {
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--fg-subtle);
+      border: 1px solid var(--border);
+    }
+
+    .filter-chip.active {
+      background: var(--accent-bg);
+      color: #c7d2fe;
+      border-color: rgba(99, 102, 241, 0.45);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .stat-card {
+      position: relative;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 112px;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
+      background: var(--card-hover);
+    }
+
+    .stat-card.equity-card {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 48%, #1e1035 100%);
+      border-color: rgba(129, 140, 248, 0.35);
+      color: #ffffff;
+    }
+
+    .stat-card.equity-card::after {
+      content: "";
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.18), transparent 70%);
+      pointer-events: none;
+    }
+
+    .stat-card:not(.equity-card)::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 14px;
+      bottom: 14px;
+      width: 4px;
+      border-radius: 0 4px 4px 0;
+      background: var(--strip-color, var(--accent));
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--fg-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .equity-card .stat-label {
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .stat-value {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 6px 0 3px;
+      word-break: break-word;
+    }
+
+    .equity-card .stat-value {
+      font-size: 1.72rem;
+      color: #ffffff;
+    }
+
+    .stat-sub {
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .equity-card .stat-sub {
+      color: rgba(224, 231, 255, 0.78);
+    }
+
+    .pos { color: var(--profit) !important; }
+    .neg { color: var(--loss) !important; }
+    .neutral { color: var(--fg) !important; }
+
+    /* SOP Container (3 Panels) */
+    .sop-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .panel-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 0.96rem;
+      font-weight: 700;
+    }
+
+    .panel-title i {
+      color: #fbbf24;
+    }
+
+    .panel-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .progress-chip {
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--fg-subtle);
+      border: 1px solid var(--border);
+    }
+
+    .progress-chip.complete {
+      background: var(--profit-bg);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.38);
+    }
+
+    .checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .check-item {
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+      padding: 10px 12px;
+      transition: all 0.16s ease;
+    }
+
+    .check-item.checked {
+      background: var(--accent-bg);
+      border-color: rgba(99, 102, 241, 0.35);
+    }
+
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .check-row input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      border-radius: 5px;
+      border: 1.5px solid var(--border-hover);
+      background: var(--bg-subtle);
+      flex-shrink: 0;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .check-row input[type="checkbox"]:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .check-row input[type="checkbox"]:checked::after {
+      content: "\f00c";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      font-size: 10px;
+      color: #ffffff;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .check-text {
+      font-size: 0.86rem;
+      color: var(--fg);
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .check-item.checked .check-text {
+      text-decoration: line-through;
+      color: var(--fg-subtle);
+      opacity: 0.72;
+    }
+
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+      gap: 6px;
+      margin-top: 9px;
+      padding-left: 28px;
+    }
+
+    .thumb-img {
+      width: 100%;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 7px;
+      border: 1px solid var(--border-hover);
+      cursor: zoom-in;
+      transition: transform 0.15s ease;
+    }
+
+    .thumb-img:hover {
+      transform: scale(1.04);
+    }
+
+    /* Sessions List */
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .session-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 13px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+    }
+
+    .session-name {
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+
+    .session-hours {
+      font-size: 0.75rem;
+      color: var(--fg-subtle);
+    }
+
+    .session-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.02em;
+    }
+
+    .session-badge.open {
+      background: var(--profit-bg);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    .session-badge.closed {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--fg-subtle);
+      border: 1px solid var(--border);
+    }
+
+    .utc-note {
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+    }
+
+    /* Two-Col Charts & Logs */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 270px;
+      width: 100%;
+    }
+
+    .chart-badge {
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--profit-bg);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .chart-badge.neg-badge {
+      background: var(--loss-bg);
+      color: #fda4af;
+      border-color: rgba(244, 63, 94, 0.3);
+    }
+
+    /* Trade Table */
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .search-input {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 0.84rem;
+      font-family: inherit;
+      min-width: 200px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+      font-size: 0.84rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 11px 14px;
+      background: var(--bg-subtle);
+      color: var(--fg-subtle);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .type-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .pill-trade { background: var(--blue-bg); color: #93c5fd; }
+    .pill-deposit { background: var(--profit-bg); color: #6ee7b7; }
+    .pill-withdraw { background: var(--warn-bg); color: #fcd34d; }
+
+    .outcome-pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .out-win { background: var(--profit-bg); color: #34d399; }
+    .out-loss { background: var(--loss-bg); color: #fda4af; }
+    .out-be { background: rgba(107, 114, 128, 0.2); color: #d1d5db; }
+
+    .empty-state {
+      text-align: center;
+      padding: 36px 16px;
+      color: var(--fg-subtle);
+      font-size: 0.88rem;
+    }
+
+    /* Mobile FAB */
+    .fab-add {
+      position: fixed;
+      right: calc(18px + var(--safe-right));
+      bottom: calc(18px + var(--safe-bottom));
+      z-index: 45;
+      height: 52px;
+      padding: 0 20px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: #ffffff;
+      box-shadow: 0 10px 28px rgba(99, 102, 241, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      display: inline-flex;
+    }
+
+    /* Modal Backdrop & Sheet/Dialog */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      background: rgba(3, 4, 8, 0.68);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-height: 90dvh;
+      background: var(--card);
+      border: 1px solid var(--border-hover);
+      border-radius: 28px 28px 0 0;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: sheet-up 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+      padding-bottom: var(--safe-bottom);
+    }
+
+    @keyframes sheet-up {
+      from {
+        transform: translateY(100%);
+        opacity: 0.6;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.22);
+      margin: 10px auto 2px;
+      flex-shrink: 0;
+    }
+
+    .modal-header {
+      padding: 12px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-size: 1.02rem;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 18px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex: 1;
+    }
+
+    .modal-footer {
+      position: sticky;
+      bottom: 0;
+      padding: 12px 20px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    /* Form Controls */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--fg-subtle);
+    }
+
+    .form-control, .form-select, .form-textarea {
+      width: 100%;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      outline: none;
+    }
+
+    .form-control:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+
+    .form-textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+
+    .helper-text {
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+
+    /* Toast Container */
+    .toast-container {
+      position: fixed;
+      top: calc(16px + var(--safe-top));
+      right: calc(16px + var(--safe-right));
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: min(360px, calc(100vw - 32px));
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 15px;
+      border-radius: var(--radius-md);
+      background: var(--card-hover);
+      border: 1px solid var(--border-hover);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+      font-size: 0.84rem;
+      font-weight: 500;
+      animation: toast-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes toast-in {
+      from {
+        transform: translateX(110%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast.success i { color: var(--profit); }
+    .toast.error i { color: var(--loss); }
+    .toast.info i { color: var(--blue); }
+
+    /* Lightbox */
+    .lightbox-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 95;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .lightbox-backdrop.open {
+      display: flex;
+    }
+
+    .lightbox-img {
+      max-width: 100%;
+      max-height: 85dvh;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-hover);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 479px) {
+      .header-actions .btn-label {
+        display: none;
+      }
+      .header-actions .btn-ghost,
+      .header-actions .btn-primary {
+        padding: 8px 10px;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .header-add-btn {
+        display: none;
+      }
+    }
+
+    @media (min-width: 768px) {
+      body {
+        padding-bottom: 36px;
+      }
+      .fab-add {
+        display: none;
+      }
+      .main-container {
+        padding: 22px 24px 32px;
+        gap: 18px;
+      }
+      .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .sop-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .two-col {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .form-grid.cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      /* Desktop Modal Dialog */
+      .modal-backdrop {
+        align-items: center;
+        padding: 24px;
+      }
+      .modal-box {
+        max-width: 600px;
+        max-height: 86dvh;
+        border-radius: var(--radius-lg);
+        padding-bottom: 0;
+        animation: dialog-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes dialog-in {
+        from {
+          transform: scale(0.95) translateY(8px);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1) translateY(0);
+          opacity: 1;
+        }
+      }
+      .sheet-handle {
+        display: none;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: 1.6fr repeat(5, 1fr);
+      }
+      .sop-container {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient Background -->
+  <div class="bg-blobs" aria-hidden="true">
+    <div class="blob blob-indigo"></div>
+    <div class="blob blob-emerald"></div>
+    <div class="blob blob-purple"></div>
+  </div>
+  <div class="bg-dots" aria-hidden="true"></div>
+
+  <!-- Sticky Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <img src="./logo-gc.jpg" alt="Logo GC" class="brand-logo" />
+        <span class="pulse-dot" aria-hidden="true"></span>
+        <span class="brand-title">Trading Journal &amp; SOP</span>
+        <span class="brand-badge">GC PRO</span>
+      </div>
+
+      <nav class="header-actions" aria-label="Aksi utama">
+        <button type="button" class="btn-ghost" onclick="openBalanceModal()" title="Atur Saldo Awal">
+          <i class="fa-solid fa-wallet"></i>
+          <span class="btn-label">Saldo</span>
+        </button>
+        <button type="button" class="btn-ghost" onclick="openSopModal('rules')" title="Kelola SOP &amp; Rules">
+          <i class="fa-solid fa-clipboard-check"></i>
+          <span class="btn-label">SOP</span>
+        </button>
+        <button type="button" class="btn-ghost" onclick="openDataModal()" title="Kelola Data">
+          <i class="fa-solid fa-database"></i>
+          <span class="btn-label">Data</span>
+        </button>
+        <button type="button" class="btn-ghost" onclick="exportDataMenu()" title="Export Data">
+          <i class="fa-solid fa-file-export"></i>
+          <span class="btn-label">Export</span>
+        </button>
+        <button type="button" class="btn-ghost" onclick="triggerImportFile()" title="Import Data">
+          <i class="fa-solid fa-file-import"></i>
+          <span class="btn-label">Import</span>
+        </button>
+        <button type="button" class="btn-ghost" onclick="openDriveModal()" title="Konfigurasi Google Drive">
+          <i class="fa-brands fa-google-drive"></i>
+          <span class="btn-label">Drive</span>
+        </button>
+        <button type="button" class="btn-icon" onclick="pushToDrive()" title="Push ke Drive" aria-label="Push ke Drive">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+        </button>
+        <button type="button" class="btn-icon" onclick="pullFromDrive()" title="Pull dari Drive" aria-label="Pull dari Drive">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+        </button>
+        <button type="button" class="btn-primary header-add-btn" onclick="openTradeModal()">
+          <i class="fa-solid fa-plus"></i>
+          <span class="btn-label">Tambah Trade</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <input type="file" id="importFileInput" accept=".json,.csv,.xlsx,.xls" style="display:none" onchange="handleImportFile(event)" />
+
+  <!-- Main Content -->
+  <main class="main-container">
+    <!-- Library Error Banner -->
+    <div id="libErrorBanner" class="lib-banner" role="alert">
+      <div>
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="libErrorText">Beberapa pustaka eksternal gagal dimuat. Mode penyimpanan cadangan aktif.</span>
+      </div>
+      <button type="button" class="btn-ghost btn-xs" onclick="dismissLibBanner()">Tutup</button>
+    </div>
+
+    <!-- Sync Status Bar & Filter -->
+    <div class="sync-bar-wrap">
+      <button type="button" class="sync-pill" onclick="openDriveModal()" title="Klik untuk konfigurasi Google Drive">
+        <span id="syncDot" class="status-dot yellow"></span>
+        <span id="syncStatusText">Drive: Belum dikonfigurasi</span>
+      </button>
+
+      <div class="quick-filter-row" role="group" aria-label="Filter jenis transaksi">
+        <button type="button" class="filter-chip active" data-filter="all" onclick="setTypeFilter('all')">Semua</button>
+        <button type="button" class="filter-chip" data-filter="trade" onclick="setTypeFilter('trade')">Trade</button>
+        <button type="button" class="filter-chip" data-filter="deposit" onclick="setTypeFilter('deposit')">Deposit</button>
+        <button type="button" class="filter-chip" data-filter="withdraw" onclick="setTypeFilter('withdraw')">Withdraw</button>
+      </div>
+    </div>
+
+    <!-- 6 Stats Cards -->
+    <section class="stats-grid" aria-label="Ringkasan statistik trading">
+      <!-- 1. Equity Saat Ini -->
+      <article class="stat-card equity-card">
+        <div class="stat-label">
+          <span>Equity Saat Ini</span>
+          <i class="fa-solid fa-crown" style="color:#fbbf24"></i>
+        </div>
+        <div id="statEquity" class="stat-value mono">$0.00</div>
+        <div id="statInitialSub" class="stat-sub mono">Initial: $0.00</div>
+      </article>
+
+      <!-- 2. Total P/L -->
+      <article class="stat-card" style="--strip-color: var(--profit);">
+        <div class="stat-label">
+          <span>Total P/L</span>
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div id="statPnl" class="stat-value mono">$0.00</div>
+        <div id="statWlbSub" class="stat-sub mono">0W • 0L • 0BE</div>
+      </article>
+
+      <!-- 3. ROI -->
+      <article class="stat-card" style="--strip-color: var(--blue);">
+        <div class="stat-label">
+          <span>ROI</span>
+          <i class="fa-solid fa-percent"></i>
+        </div>
+        <div id="statRoi" class="stat-value mono">0.00%</div>
+        <div class="stat-sub">Net P/L ÷ Saldo Awal</div>
+      </article>
+
+      <!-- 4. Win Rate -->
+      <article class="stat-card" style="--strip-color: var(--accent);">
+        <div class="stat-label">
+          <span>Win Rate</span>
+          <i class="fa-solid fa-bullseye"></i>
+        </div>
+        <div id="statWinRate" class="stat-value mono">0.0%</div>
+        <div id="statDecidedSub" class="stat-sub">0 trade diputuskan</div>
+      </article>
+
+      <!-- 5. Profit Factor -->
+      <article class="stat-card" style="--strip-color: var(--warn);">
+        <div class="stat-label">
+          <span>Profit Factor</span>
+          <i class="fa-solid fa-fire-flame-curved"></i>
+        </div>
+        <div id="statPf" class="stat-value mono">—</div>
+        <div class="stat-sub">Gross Profit ÷ Gross Loss</div>
+      </article>
+
+      <!-- 6. Total Trades -->
+      <article class="stat-card" style="--strip-color: var(--purple);">
+        <div class="stat-label">
+          <span>Total Trades</span>
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div id="statTotalTrades" class="stat-value mono neutral">0</div>
+        <div id="statCashflowSub" class="stat-sub">0 deposit • 0 withdraw</div>
+      </article>
+    </section>
+
+    <!-- 3 Side-by-Side Panels: Trading Rules, SOP Entry, Status Sesi Global -->
+    <section class="sop-container" aria-label="Aturan trading, SOP entry, dan sesi global">
+      <!-- Panel 1: Trading Rules -->
+      <article class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fa-solid fa-scale-balanced"></i>
+            <span>Trading Rules</span>
+          </div>
+          <div class="panel-meta">
+            <span id="rulesChip" class="progress-chip mono">0/0</span>
+            <button type="button" class="btn-ghost btn-xs" onclick="openSopModal('rules')">Kelola</button>
+          </div>
+        </div>
+        <div id="rulesChecklist" class="checklist"></div>
+      </article>
+
+      <!-- Panel 2: SOP Entry -->
+      <article class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fa-solid fa-list-check"></i>
+            <span>SOP Entry</span>
+          </div>
+          <div class="panel-meta">
+            <span id="sopChip" class="progress-chip mono">0/0</span>
+            <button type="button" class="btn-ghost btn-xs" onclick="openSopModal('sop')">Kelola</button>
+          </div>
+        </div>
+        <div id="sopChecklist" class="checklist"></div>
+      </article>
+
+      <!-- Panel 3: Status Sesi Global -->
+      <article class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fa-solid fa-earth-asia" style="color:#38bdf8"></i>
+            <span>Status Sesi Global</span>
+          </div>
+          <span class="progress-chip mono" id="utcClockBadge">UTC --:--</span>
+        </div>
+        <div id="sessionsList" class="session-list"></div>
+        <div class="utc-note">
+          <span>Overlap diperbolehkan</span>
+          <span>Auto-update 60s</span>
+        </div>
+      </article>
+    </section>
+
+<!-- Two Charts Side-by-Side -->
+    <section class="two-col" aria-label="Grafik performa">
+      <!-- Equity Curve -->
+      <article class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fa-solid fa-wave-square" style="color:var(--profit)"></i>
+            <span>Equity Curve</span>
+          </div>
+          <span id="equityCurveBadge" class="chart-badge mono">$0.00</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="equityChartCanvas"></canvas>
+        </div>
+      </article>
+
+      <!-- Win/Loss Distribution -->
+      <article class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fa-solid fa-chart-pie" style="color:var(--accent)"></i>
+            <span>Win/Loss Distribution</span>
+          </div>
+          <span id="wldSummaryBadge" class="progress-chip mono">0W / 0L / 0BE</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="winLossChartCanvas"></canvas>
+        </div>
+      </article>
+    </section>
+
+    <!-- Trade & Cashflow History Table -->
+    <section class="panel-card" aria-label="Riwayat transaksi">
+      <div class="table-toolbar">
+        <div class="panel-title">
+          <i class="fa-solid fa-clock-rotate-left" style="color:var(--blue)"></i>
+          <span>Riwayat Trade &amp; Kas</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="search" id="searchTradeInput" class="search-input" placeholder="Cari pair, catatan, tag..." oninput="renderHistoryTable()" />
+          <button type="button" class="btn-primary btn-xs" onclick="openTradeModal()">
+            <i class="fa-solid fa-plus"></i> Catat
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Jenis</th>
+              <th>Pair / Keterangan</th>
+              <th>Arah / Hasil</th>
+              <th>Nominal / P/L</th>
+              <th>Catatan</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Mobile FAB -->
+  <button type="button" class="fab-add" onclick="openTradeModal()" aria-label="Tambah Trade">
+    <i class="fa-solid fa-plus"></i>
+    <span>Tambah Trade</span>
+  </button>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Lightbox -->
+  <div id="lightboxBackdrop" class="lightbox-backdrop" onclick="closeLightbox()">
+    <img id="lightboxImg" class="lightbox-img" src="" alt="Gambar referensi" onclick="event.stopPropagation()" />
+  </div>
+
+  <!-- Modal Container -->
+  <div id="modalBackdrop" class="modal-backdrop" onclick="handleBackdropClick(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <h2 id="modalTitle" class="modal-title">Modal</h2>
+        <button type="button" class="btn-icon" onclick="closeModal()" aria-label="Tutup modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+      <div id="modalFooter" class="modal-footer"></div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       STORAGE & STATE (ES5/ES6 Global Functions)
+       ========================================================================= */
+    var STORAGE_KEY = 'gil_circle_trading_journal_v1';
+    var lfStore = null;
+    var equityChartInstance = null;
+    var winLossChartInstance = null;
+    var activeTypeFilter = 'all';
+    var sessionTimerId = null;
+
+    var appState = {
+      initialBalance: 1000,
+      entries: [], // { id, type: 'trade'|'deposit'|'withdraw', date, pair, direction, pnl, outcome, notes, tags }
+      rules: [
+        { id: 'r1', text: 'Maksimal risiko per posisi 1%–2% dari equity', checked: false, images: [] },
+        { id: 'r2', text: 'Stop trading setelah 2 loss beruntun dalam sehari', checked: false, images: [] },
+        { id: 'r3', text: 'Wajib pasang Stop Loss sebelum eksekusi order', checked: false, images: [] }
+      ],
+      sop: [
+        { id: 's1', text: 'Konfirmasi bias struktur pasar H4 / H1', checked: false, images: [] },
+        { id: 's2', text: 'Harga berada di area POI / Supply-Demand valid', checked: false, images: [] },
+        { id: 's3', text: 'Risk-to-Reward minimal 1:2 dan bebas berita high-impact', checked: false, images: [] }
+      ],
+      drive: {
+        scriptUrl: '',
+        secretToken: '',
+        lastSyncAt: null,
+        lastSyncStatus: 'idle', // idle | ok | err
+        lastSyncMessage: 'Belum dikonfigurasi'
+      },
+      updatedAt: Date.now()
+    };
+
+/* =========================================================================
+       SECURITY & FORMATTING HELPERS
+       ========================================================================= */
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function toNum(v, fallback) {
+      var n = parseFloat(v);
+      return isNaN(n) || !isFinite(n) ? (fallback !== undefined ? fallback : 0) : n;
+    }
+
+    function formatMoney(num) {
+      var val = toNum(num, 0);
+      var sign = val < 0 ? '-' : '';
+      var abs = Math.abs(val);
+      return sign + '$' + abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatSignedMoney(num) {
+      var val = toNum(num, 0);
+      if (val > 0) return '+$' + Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (val < 0) return '-$' + Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return '$0.00';
+    }
+
+    function formatCompactMoney(num) {
+      var val = toNum(num, 0);
+      var sign = val < 0 ? '-' : '';
+      var abs = Math.abs(val);
+      if (abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+      if (abs >= 1e3) return sign + '$' + (abs / 1e3).toFixed(1).replace(/\.0$/, '') + 'k';
+      return sign + '$' + abs.toFixed(0);
+    }
+
+    function signedProfit(entry) {
+      if (!entry) return 0;
+      var amt = toNum(entry.pnl, 0);
+      if (entry.type === 'deposit') return Math.abs(amt);
+      if (entry.type === 'withdraw') return -Math.abs(amt);
+      return amt;
+    }
+
+    function generateId(prefix) {
+      return (prefix || 'id') + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+    }
+
+    function nowLocalDateTimeInput() {
+      var d = new Date();
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return d.toISOString().slice(0, 16);
+    }
+
+    function formatDisplayDate(dateStr) {
+      var d = new Date(dateStr);
+      if (isNaN(d.getTime())) return escapeHtml(dateStr || '-');
+      return d.toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    /* =========================================================================
+       TOAST & LIBRARY CHECK
+       ========================================================================= */
+    function showToast(message, type) {
+      var tType = type || 'info';
+      var iconClass = 'fa-circle-info';
+      if (tType === 'success') iconClass = 'fa-circle-check';
+      if (tType === 'error') iconClass = 'fa-circle-exclamation';
+
+      var container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      var el = document.createElement('div');
+      el.className = 'toast ' + tType;
+      el.innerHTML = '<i class="fa-solid ' + iconClass + '"></i><span>' + escapeHtml(message) + '</span>';
+      container.appendChild(el);
+
+      setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(40px)';
+        el.style.transition = 'all 0.25s ease';
+        setTimeout(function () {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 260);
+      }, 3200);
+    }
+
+    function dismissLibBanner() {
+      var banner = document.getElementById('libErrorBanner');
+      if (banner) banner.classList.remove('show');
+    }
+
+    function checkLibraries() {
+      var missing = [];
+      if (typeof Chart === 'undefined') missing.push('Chart.js');
+      if (typeof localforage === 'undefined') missing.push('localForage');
+      if (typeof XLSX === 'undefined') missing.push('SheetJS (XLSX)');
+
+      if (missing.length > 0) {
+        var banner = document.getElementById('libErrorBanner');
+        var textEl = document.getElementById('libErrorText');
+        if (textEl) {
+          textEl.textContent = 'Pustaka CDN belum termuat (' + missing.join(', ') + '). Fitur terkait akan menggunakan fallback aman.';
+        }
+        if (banner) banner.classList.add('show');
+      }
+    }
+
+    /* =========================================================================
+       PERSISTENCE (localForage + localStorage fallback)
+       ========================================================================= */
+    function normalizeState(raw) {
+      if (!raw || typeof raw !== 'object') return appState;
+      var entriesSource = Array.isArray(raw.entries) ? raw.entries : [];
+      return {
+        initialBalance: toNum(raw.initialBalance, 1000),
+        entries: entriesSource,
+        rules: Array.isArray(raw.rules) ? raw.rules.map(function (r) {
+          return {
+            id: r.id || generateId('r'),
+            text: String(r.text || ''),
+            checked: Boolean(r.checked),
+            images: Array.isArray(r.images) ? r.images : []
+          };
+        }) : appState.rules,
+        sop: Array.isArray(raw.sop) ? raw.sop.map(function (s) {
+          return {
+            id: s.id || generateId('s'),
+            text: String(s.text || ''),
+            checked: Boolean(s.checked),
+            images: Array.isArray(s.images) ? s.images : []
+          };
+        }) : appState.sop,
+        drive: {
+          scriptUrl: (raw.drive && raw.drive.scriptUrl) ? String(raw.drive.scriptUrl) : '',
+          secretToken: (raw.drive && raw.drive.secretToken) ? String(raw.drive.secretToken) : '',
+          lastSyncAt: (raw.drive && raw.drive.lastSyncAt) || null,
+          lastSyncStatus: (raw.drive && raw.drive.lastSyncStatus) || 'idle',
+          lastSyncMessage: (raw.drive && raw.drive.lastSyncMessage) || 'Belum dikonfigurasi'
+        },
+        updatedAt: toNum(raw.updatedAt, Date.now())
+      };
+    }
+
+    async function initStorageAndLoad() {
+      if (typeof localforage !== 'undefined') {
+        try {
+          lfStore = localforage.createInstance({
+            name: 'GilCircleTradingJournal',
+            storeName: 'journal_data'
+          });
+          var saved = await lfStore.getItem(STORAGE_KEY);
+          if (saved) {
+            appState = normalizeState(saved);
+            return;
+          }
+        } catch (err) {
+          console.warn('localForage getItem gagal:', err);
+        }
+      }
+      try {
+        var lsRaw = localStorage.getItem(STORAGE_KEY);
+        if (lsRaw) {
+          appState = normalizeState(JSON.parse(lsRaw));
+        }
+      } catch (err2) {
+        console.warn('localStorage load gagal:', err2);
+      }
+    }
+
+    async function saveState(skipTimestamp) {
+      if (!skipTimestamp) {
+        appState.updatedAt = Date.now();
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        // Ignore quota errors on localStorage when large images exist
+      }
+      if (typeof localforage !== 'undefined') {
+        try {
+          if (!lfStore) {
+            lfStore = localforage.createInstance({
+              name: 'GilCircleTradingJournal',
+              storeName: 'journal_data'
+            });
+          }
+          await lfStore.setItem(STORAGE_KEY, appState);
+        } catch (err) {
+          console.warn('localForage save gagal:', err);
+        }
+      }
+    }
+
+    /* =========================================================================
+       CALCULATIONS & RENDERING ALL SECTIONS
+       ========================================================================= */
+    function computeMetrics() {
+      var initial = toNum(appState.initialBalance, 0);
+      var totalDeposit = 0;
+      var totalWithdraw = 0;
+      var totalPnl = 0;
+      var grossProfit = 0;
+      var grossLoss = 0;
+      var winCount = 0;
+      var lossCount = 0;
+      var beCount = 0;
+      var tradeCount = 0;
+      var depositCount = 0;
+      var withdrawCount = 0;
+
+      for (var i = 0; i < appState.entries.length; i++) {
+        var e = appState.entries[i];
+        var amt = toNum(e.pnl, 0);
+        if (e.type === 'deposit') {
+          var dVal = Math.abs(amt);
+          totalDeposit += dVal;
+          depositCount++;
+        } else if (e.type === 'withdraw') {
+          var wVal = Math.abs(amt);
+          totalWithdraw += wVal;
+          withdrawCount++;
+        } else {
+          tradeCount++;
+          totalPnl += amt;
+          if (amt > 0) {
+            grossProfit += amt;
+            winCount++;
+          } else if (amt < 0) {
+            grossLoss += Math.abs(amt);
+            lossCount++;
+          } else {
+            beCount++;
+          }
+        }
+      }
+
+      var equity = initial + totalDeposit - totalWithdraw + totalPnl;
+      var roi = initial > 0 ? (totalPnl / initial) * 100 : 0;
+      var decided = winCount + lossCount;
+      var winRate = decided > 0 ? (winCount / decided) * 100 : 0;
+
+      var pfText = '—';
+      if (grossLoss > 0) {
+        pfText = (grossProfit / grossLoss).toFixed(2);
+      } else if (grossProfit > 0) {
+        pfText = '∞';
+      }
+
+      return {
+        initial: initial,
+        equity: equity,
+        totalDeposit: totalDeposit,
+        totalWithdraw: totalWithdraw,
+        totalPnl: totalPnl,
+        roi: roi,
+        winCount: winCount,
+        lossCount: lossCount,
+        beCount: beCount,
+        decided: decided,
+        winRate: winRate,
+        pfText: pfText,
+        tradeCount: tradeCount,
+        depositCount: depositCount,
+        withdrawCount: withdrawCount
+      };
+    }
+
+    function renderStats() {
+      var m = computeMetrics();
+
+      var eqEl = document.getElementById('statEquity');
+      var initSubEl = document.getElementById('statInitialSub');
+      var pnlEl = document.getElementById('statPnl');
+      var wlbEl = document.getElementById('statWlbSub');
+      var roiEl = document.getElementById('statRoi');
+      var wrEl = document.getElementById('statWinRate');
+      var decEl = document.getElementById('statDecidedSub');
+      var pfEl = document.getElementById('statPf');
+      var totEl = document.getElementById('statTotalTrades');
+      var cfEl = document.getElementById('statCashflowSub');
+
+      if (eqEl) eqEl.textContent = formatMoney(m.equity);
+      if (initSubEl) initSubEl.textContent = 'Initial: ' + formatMoney(m.initial);
+
+      if (pnlEl) {
+        pnlEl.textContent = formatSignedMoney(m.totalPnl);
+        pnlEl.className = 'stat-value mono ' + (m.totalPnl > 0 ? 'pos' : (m.totalPnl < 0 ? 'neg' : 'neutral'));
+      }
+      if (wlbEl) wlbEl.textContent = m.winCount + 'W • ' + m.lossCount + 'L • ' + m.beCount + 'BE';
+
+      if (roiEl) {
+        var rSign = m.roi > 0 ? '+' : '';
+        roiEl.textContent = rSign + m.roi.toFixed(2) + '%';
+        roiEl.className = 'stat-value mono ' + (m.roi > 0 ? 'pos' : (m.roi < 0 ? 'neg' : 'neutral'));
+      }
+
+      if (wrEl) {
+        wrEl.textContent = m.winRate.toFixed(1) + '%';
+        wrEl.className = 'stat-value mono ' + (m.winRate >= 50 && m.decided > 0 ? 'pos' : (m.decided > 0 && m.winRate < 50 ? 'neg' : 'neutral'));
+      }
+      if (decEl) decEl.textContent = m.decided + ' trade diputuskan';
+
+      if (pfEl) {
+        pfEl.textContent = m.pfText;
+        if (m.pfText === '∞' || toNum(m.pfText, 0) >= 1) {
+          pfEl.className = 'stat-value mono pos';
+        } else if (m.pfText !== '—' && toNum(m.pfText, 0) < 1) {
+          pfEl.className = 'stat-value mono neg';
+        } else {
+          pfEl.className = 'stat-value mono neutral';
+        }
+      }
+
+      if (totEl) totEl.textContent = String(m.tradeCount);
+      if (cfEl) cfEl.textContent = m.depositCount + ' deposit • ' + m.withdrawCount + ' withdraw';
+    }
+
+    function renderChecklist(kind, containerId, chipId) {
+      var list = kind === 'rules' ? appState.rules : appState.sop;
+      var container = document.getElementById(containerId);
+      var chip = document.getElementById(chipId);
+      if (!container) return;
+
+      var done = 0;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].checked) done++;
+      }
+
+      if (chip) {
+        chip.textContent = done + '/' + list.length;
+        if (list.length > 0 && done === list.length) {
+          chip.classList.add('complete');
+        } else {
+          chip.classList.remove('complete');
+        }
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding:18px 8px">Belum ada item. Klik <b>Kelola</b> untuk menambah.</div>';
+        return;
+      }
+
+      var html = '';
+      for (var j = 0; j < list.length; j++) {
+        var item = list[j];
+        var checkedClass = item.checked ? ' checked' : '';
+        var checkedAttr = item.checked ? ' checked' : '';
+        html += '<div class="check-item' + checkedClass + '">';
+        html += '  <label class="check-row">';
+        html += '    <input type="checkbox"' + checkedAttr + ' onchange="toggleChecklistItem(\'' + kind + '\', \'' + escapeHtml(item.id) + '\')" />';
+        html += '    <span class="check-text">' + escapeHtml(item.text) + '</span>';
+        html += '  </label>';
+
+        if (Array.isArray(item.images) && item.images.length > 0) {
+          html += '<div class="thumb-grid">';
+          for (var k = 0; k < item.images.length; k++) {
+            var src = item.images[k];
+            if (typeof src === 'string' && (src.indexOf('data:image/') === 0 || src.indexOf('https://') === 0 || src.indexOf('http://') === 0)) {
+              html += '<img class="thumb-img" src="' + escapeHtml(src) + '" alt="Referensi" onclick="openLightbox(\'' + escapeHtml(src) + '\')" />';
+            }
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    async function toggleChecklistItem(kind, id) {
+      var list = kind === 'rules' ? appState.rules : appState.sop;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id) {
+          list[i].checked = !list[i].checked;
+          break;
+        }
+      }
+      await saveState();
+      renderChecklist('rules', 'rulesChecklist', 'rulesChip');
+      renderChecklist('sop', 'sopChecklist', 'sopChip');
+    }
+
+    /* =========================================================================
+       GLOBAL TRADING SESSIONS (UTC)
+       ========================================================================= */
+    function isHourInWindow(hourUtc, startHour, endHour) {
+      if (startHour < endHour) {
+        return hourUtc >= startHour && hourUtc < endHour;
+      }
+      return hourUtc >= startHour || hourUtc < endHour;
+    }
+
+    function renderSessions() {
+      var now = new Date();
+      var utcHour = now.getUTCHours();
+      var utcMin = now.getUTCMinutes();
+      var utcStr = (utcHour < 10 ? '0' : '') + utcHour + ':' + (utcMin < 10 ? '0' : '') + utcMin;
+
+      var badge = document.getElementById('utcClockBadge');
+      if (badge) badge.textContent = 'UTC ' + utcStr;
+
+      var sessions = [
+        { name: 'Asia (Tokyo / Sydney)', windowText: '00:00 – 09:00 UTC', isOpen: isHourInWindow(utcHour, 0, 9) },
+/* =========================================================================
+       SECURITY & FORMATTING HELPERS
+       ========================================================================= */
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function toNum(v, fallback) {
+      var n = parseFloat(v);
+      return isNaN(n) || !isFinite(n) ? (fallback !== undefined ? fallback : 0) : n;
+    }
+
+    function formatMoney(num) {
+      var val = toNum(num, 0);
+      var sign = val < 0 ? '-' : '';
+      var abs = Math.abs(val);
+      return sign + '$' + abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatSignedMoney(num) {
+      var val = toNum(num, 0);
+      if (val > 0) return '+$' + Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (val < 0) return '-$' + Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return '$0.00';
+    }
+
+    function formatCompactMoney(num) {
+      var val = toNum(num, 0);
+      var sign = val < 0 ? '-' : '';
+      var abs = Math.abs(val);
+      if (abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+      if (abs >= 1e3) return sign + '$' + (abs / 1e3).toFixed(1).replace(/\.0$/, '') + 'k';
+      return sign + '$' + abs.toFixed(0);
+    }
+
+    function signedProfit(entry) {
+      if (!entry) return 0;
+      var amt = toNum(entry.pnl, 0);
+      if (entry.type === 'deposit') return Math.abs(amt);
+      if (entry.type === 'withdraw') return -Math.abs(amt);
+      return amt;
+    }
+
+    function generateId(prefix) {
+      return (prefix || 'id') + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+    }
+
+    function nowLocalDateTimeInput() {
+      var d = new Date();
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return d.toISOString().slice(0, 16);
+    }
+
+    function formatDisplayDate(dateStr) {
+      var d = new Date(dateStr);
+      if (isNaN(d.getTime())) return escapeHtml(dateStr || '-');
+      return d.toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    /* =========================================================================
+       TOAST & LIBRARY CHECK
+       ========================================================================= */
+    function showToast(message, type) {
+      var tType = type || 'info';
+      var iconClass = 'fa-circle-info';
+      if (tType === 'success') iconClass = 'fa-circle-check';
+      if (tType === 'error') iconClass = 'fa-circle-exclamation';
+
+      var container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      var el = document.createElement('div');
+      el.className = 'toast ' + tType;
+      el.innerHTML = '<i class="fa-solid ' + iconClass + '"></i><span>' + escapeHtml(message) + '</span>';
+      container.appendChild(el);
+
+      setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(40px)';
+        el.style.transition = 'all 0.25s ease';
+        setTimeout(function () {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 260);
+      }, 3200);
+    }
+
+    function dismissLibBanner() {
+      var banner = document.getElementById('libErrorBanner');
+      if (banner) banner.classList.remove('show');
+    }
+
+    function checkLibraries() {
+      var missing = [];
+      if (typeof Chart === 'undefined') missing.push('Chart.js');
+      if (typeof localforage === 'undefined') missing.push('localForage');
+      if (typeof XLSX === 'undefined') missing.push('SheetJS (XLSX)');
+
+      if (missing.length > 0) {
+        var banner = document.getElementById('libErrorBanner');
+        var textEl = document.getElementById('libErrorText');
+        if (textEl) {
+          textEl.textContent = 'Pustaka CDN belum termuat (' + missing.join(', ') + '). Fitur terkait akan menggunakan fallback aman.';
+        }
+        if (banner) banner.classList.add('show');
+      }
+    }
+
+    /* =========================================================================
+       PERSISTENCE (localForage + localStorage fallback)
+       ========================================================================= */
+    function normalizeState(raw) {
+      if (!raw || typeof raw !== 'object') return appState;
+      var entriesSource = Array.isArray(raw.entries) ? raw.entries : [];
+      return {
+        initialBalance: toNum(raw.initialBalance, 1000),
+        entries: entriesSource,
+        rules: Array.isArray(raw.rules) ? raw.rules.map(function (r) {
+          return {
+            id: r.id || generateId('r'),
+            text: String(r.text || ''),
+            checked: Boolean(r.checked),
+            images: Array.isArray(r.images) ? r.images : []
+          };
+        }) : appState.rules,
+        sop: Array.isArray(raw.sop) ? raw.sop.map(function (s) {
+          return {
+            id: s.id || generateId('s'),
+            text: String(s.text || ''),
+            checked: Boolean(s.checked),
+            images: Array.isArray(s.images) ? s.images : []
+          };
+        }) : appState.sop,
+        drive: {
+          scriptUrl: (raw.drive && raw.drive.scriptUrl) ? String(raw.drive.scriptUrl) : '',
+          secretToken: (raw.drive && raw.drive.secretToken) ? String(raw.drive.secretToken) : '',
+          lastSyncAt: (raw.drive && raw.drive.lastSyncAt) || null,
+          lastSyncStatus: (raw.drive && raw.drive.lastSyncStatus) || 'idle',
+          lastSyncMessage: (raw.drive && raw.drive.lastSyncMessage) || 'Belum dikonfigurasi'
+        },
+        updatedAt: toNum(raw.updatedAt, Date.now())
+      };
+    }
+
+    async function initStorageAndLoad() {
+      if (typeof localforage !== 'undefined') {
+        try {
+          lfStore = localforage.createInstance({
+            name: 'GilCircleTradingJournal',
+            storeName: 'journal_data'
+          });
+          var saved = await lfStore.getItem(STORAGE_KEY);
+          if (saved) {
+            appState = normalizeState(saved);
+            return;
+          }
+        } catch (err) {
+          console.warn('localForage getItem gagal:', err);
+        }
+      }
+      try {
+        var lsRaw = localStorage.getItem(STORAGE_KEY);
+        if (lsRaw) {
+          appState = normalizeState(JSON.parse(lsRaw));
+        }
+      } catch (err2) {
+        console.warn('localStorage load gagal:', err2);
+      }
+    }
+
+    async function saveState(skipTimestamp) {
+      if (!skipTimestamp) {
+        appState.updatedAt = Date.now();
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        // Ignore quota errors on localStorage when large images exist
+      }
+      if (typeof localforage !== 'undefined') {
+        try {
+          if (!lfStore) {
+            lfStore = localforage.createInstance({
+              name: 'GilCircleTradingJournal',
+              storeName: 'journal_data'
+            });
+          }
+          await lfStore.setItem(STORAGE_KEY, appState);
+        } catch (err) {
+          console.warn('localForage save gagal:', err);
+        }
+      }
+    }
+
+    /* =========================================================================
+       CALCULATIONS & RENDERING ALL SECTIONS
+       ========================================================================= */
+    function computeMetrics() {
+      var initial = toNum(appState.initialBalance, 0);
+      var totalDeposit = 0;
+      var totalWithdraw = 0;
+      var totalPnl = 0;
+      var grossProfit = 0;
+      var grossLoss = 0;
+      var winCount = 0;
+      var lossCount = 0;
+      var beCount = 0;
+      var tradeCount = 0;
+      var depositCount = 0;
+      var withdrawCount = 0;
+
+      for (var i = 0; i < appState.entries.length; i++) {
+        var e = appState.entries[i];
+        var amt = toNum(e.pnl, 0);
+        if (e.type === 'deposit') {
+          var dVal = Math.abs(amt);
+          totalDeposit += dVal;
+          depositCount++;
+        } else if (e.type === 'withdraw') {
+          var wVal = Math.abs(amt);
+          totalWithdraw += wVal;
+          withdrawCount++;
+        } else {
+          tradeCount++;
+          totalPnl += amt;
+          if (amt > 0) {
+            grossProfit += amt;
+            winCount++;
+          } else if (amt < 0) {
+            grossLoss += Math.abs(amt);
+            lossCount++;
+          } else {
+            beCount++;
+          }
+        }
+      }
+
+      var equity = initial + totalDeposit - totalWithdraw + totalPnl;
+      var roi = initial > 0 ? (totalPnl / initial) * 100 : 0;
+      var decided = winCount + lossCount;
+      var winRate = decided > 0 ? (winCount / decided) * 100 : 0;
+
+      var pfText = '—';
+      if (grossLoss > 0) {
+        pfText = (grossProfit / grossLoss).toFixed(2);
+      } else if (grossProfit > 0) {
+        pfText = '∞';
+      }
+
+      return {
+        initial: initial,
+        equity: equity,
+        totalDeposit: totalDeposit,
+        totalWithdraw: totalWithdraw,
+        totalPnl: totalPnl,
+        roi: roi,
+        winCount: winCount,
+        lossCount: lossCount,
+        beCount: beCount,
+        decided: decided,
+        winRate: winRate,
+        pfText: pfText,
+        tradeCount: tradeCount,
+        depositCount: depositCount,
+        withdrawCount: withdrawCount
+      };
+    }
+
+    function renderStats() {
+      var m = computeMetrics();
+
+      var eqEl = document.getElementById('statEquity');
+      var initSubEl = document.getElementById('statInitialSub');
+      var pnlEl = document.getElementById('statPnl');
+      var wlbEl = document.getElementById('statWlbSub');
+      var roiEl = document.getElementById('statRoi');
+      var wrEl = document.getElementById('statWinRate');
+      var decEl = document.getElementById('statDecidedSub');
+      var pfEl = document.getElementById('statPf');
+      var totEl = document.getElementById('statTotalTrades');
+      var cfEl = document.getElementById('statCashflowSub');
+
+      if (eqEl) eqEl.textContent = formatMoney(m.equity);
+      if (initSubEl) initSubEl.textContent = 'Initial: ' + formatMoney(m.initial);
+
+      if (pnlEl) {
+        pnlEl.textContent = formatSignedMoney(m.totalPnl);
+        pnlEl.className = 'stat-value mono ' + (m.totalPnl > 0 ? 'pos' : (m.totalPnl < 0 ? 'neg' : 'neutral'));
+      }
+      if (wlbEl) wlbEl.textContent = m.winCount + 'W • ' + m.lossCount + 'L • ' + m.beCount + 'BE';
+
+      if (roiEl) {
+        var rSign = m.roi > 0 ? '+' : '';
+        roiEl.textContent = rSign + m.roi.toFixed(2) + '%';
+        roiEl.className = 'stat-value mono ' + (m.roi > 0 ? 'pos' : (m.roi < 0 ? 'neg' : 'neutral'));
+      }
+
+      if (wrEl) {
+        wrEl.textContent = m.winRate.toFixed(1) + '%';
+        wrEl.className = 'stat-value mono ' + (m.winRate >= 50 && m.decided > 0 ? 'pos' : (m.decided > 0 && m.winRate < 50 ? 'neg' : 'neutral'));
+      }
+      if (decEl) decEl.textContent = m.decided + ' trade diputuskan';
+
+      if (pfEl) {
+        pfEl.textContent = m.pfText;
+        if (m.pfText === '∞' || toNum(m.pfText, 0) >= 1) {
+          pfEl.className = 'stat-value mono pos';
+        } else if (m.pfText !== '—' && toNum(m.pfText, 0) < 1) {
+          pfEl.className = 'stat-value mono neg';
+        } else {
+          pfEl.className = 'stat-value mono neutral';
+        }
+      }
+
+      if (totEl) totEl.textContent = String(m.tradeCount);
+      if (cfEl) cfEl.textContent = m.depositCount + ' deposit • ' + m.withdrawCount + ' withdraw';
+    }
+
+    function renderChecklist(kind, containerId, chipId) {
+      var list = kind === 'rules' ? appState.rules : appState.sop;
+      var container = document.getElementById(containerId);
+      var chip = document.getElementById(chipId);
+      if (!container) return;
+
+      var done = 0;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].checked) done++;
+      }
+
+      if (chip) {
+        chip.textContent = done + '/' + list.length;
+        if (list.length > 0 && done === list.length) {
+          chip.classList.add('complete');
+        } else {
+          chip.classList.remove('complete');
+        }
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding:18px 8px">Belum ada item. Klik <b>Kelola</b> untuk menambah.</div>';
+        return;
+      }
+
+      var html = '';
+      for (var j = 0; j < list.length; j++) {
+        var item = list[j];
+        var checkedClass = item.checked ? ' checked' : '';
+        var checkedAttr = item.checked ? ' checked' : '';
+        html += '<div class="check-item' + checkedClass + '">';
+        html += '  <label class="check-row">';
+        html += '    <input type="checkbox"' + checkedAttr + ' onchange="toggleChecklistItem(\'' + kind + '\', \'' + escapeHtml(item.id) + '\')" />';
+        html += '    <span class="check-text">' + escapeHtml(item.text) + '</span>';
+        html += '  </label>';
+
+        if (Array.isArray(item.images) && item.images.length > 0) {
+          html += '<div class="thumb-grid">';
+          for (var k = 0; k < item.images.length; k++) {
+            var src = item.images[k];
+            if (typeof src === 'string' && (src.indexOf('data:image/') === 0 || src.indexOf('https://') === 0 || src.indexOf('http://') === 0)) {
+              html += '<img class="thumb-img" src="' + escapeHtml(src) + '" alt="Referensi" onclick="openLightbox(\'' + escapeHtml(src) + '\')" />';
+            }
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    async function toggleChecklistItem(kind, id) {
+      var list = kind === 'rules' ? appState.rules : appState.sop;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id) {
+          list[i].checked = !list[i].checked;
+          break;
+        }
+      }
+      await saveState();
+      renderChecklist('rules', 'rulesChecklist', 'rulesChip');
+      renderChecklist('sop', 'sopChecklist', 'sopChip');
+    }
+
+    /* =========================================================================
+       GLOBAL TRADING SESSIONS (UTC)
+       ========================================================================= */
+    function isHourInWindow(hourUtc, startHour, endHour) {
+      if (startHour < endHour) {
+        return hourUtc >= startHour && hourUtc < endHour;
+      }
+      return hourUtc >= startHour || hourUtc < endHour;
+    }
+
+    function renderSessions() {
+      var now = new Date();
+      var utcHour = now.getUTCHours();
+      var utcMin = now.getUTCMinutes();
+      var utcStr = (utcHour < 10 ? '0' : '') + utcHour + ':' + (utcMin < 10 ? '0' : '') + utcMin;
+
+      var badge = document.getElementById('utcClockBadge');
+      if (badge) badge.textContent = 'UTC ' + utcStr;
+
+      var sessions = [
+        { name: 'Asia (Tokyo / Sydney)', windowText: '00:00 – 09:00 UTC', isOpen: isHourInWindow(utcHour, 0, 9) },
+        { name: 'London', windowText: '07:00 – 16:00 UTC', isOpen: isHourInWindow(utcHour, 7, 16) },
+        { name: 'New York', windowText: '13:00 – 22:00 UTC', isOpen: isHourInWindow(utcHour, 13, 22) }
+      ];
+
+      var container = document.getElementById('sessionsList');
+      if (!container) return;
+
+      var html = '';
+      for (var i = 0; i < sessions.length; i++) {
+        var s = sessions[i];
+        var pillClass = s.isOpen ? 'session-badge open' : 'session-badge closed';
+        var pillLabel = s.isOpen ? 'Buka' : 'Tutup';
+        html += '<div class="session-row">';
+        html += '  <div>';
+        html += '    <div class="session-name">' + escapeHtml(s.name) + '</div>';
+        html += '    <div class="session-hours mono">' + escapeHtml(s.windowText) + '</div>';
+        html += '  </div>';
+        html += '  <span class="' + pillClass + '">' + pillLabel + '</span>';
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function startSessionTimer() {
+      renderSessions();
+      if (sessionTimerId) clearInterval(sessionTimerId);
+      sessionTimerId = setInterval(renderSessions, 60000);
+    }
+
+ /* =========================================================================
+       CHARTS (Chart.js 4.4.0 Safe Calls)
+       ========================================================================= */
+    function renderCharts() {
+      if (typeof Chart === 'undefined') return;
+      renderEquityChart();
+      renderWinLossChart();
+    }
+
+    function renderEquityChart() {
+      var canvas = document.getElementById('equityChartCanvas');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+
+      var initial = toNum(appState.initialBalance, 0);
+      var sorted = appState.entries.slice().sort(function (a, b) {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      });
+
+      var labels = ['Start'];
+      var equitySeries = [initial];
+      var changeSeries = [0];
+      var runningEquity = initial;
+
+      for (var i = 0; i < sorted.length; i++) {
+        var ev = sorted[i];
+        var delta = signedProfit(ev);
+        runningEquity += delta;
+        var d = new Date(ev.date);
+        var lbl = isNaN(d.getTime())
+          ? (ev.pair || ev.type || 'Event')
+          : d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) + (ev.pair ? ' · ' + ev.pair : '');
+        labels.push(lbl);
+        equitySeries.push(runningEquity);
+        changeSeries.push(delta);
+      }
+
+      var latestEquity = equitySeries[equitySeries.length - 1];
+      var isHealthy = latestEquity >= initial;
+      var lineColor = isHealthy ? '#10b981' : '#f43f5e';
+
+      var badge = document.getElementById('equityCurveBadge');
+      if (badge) {
+        badge.textContent = formatMoney(latestEquity);
+        badge.className = 'chart-badge mono' + (isHealthy ? '' : ' neg-badge');
+      }
+
+      var areaGrad = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight || 260);
+      if (isHealthy) {
+        areaGrad.addColorStop(0, 'rgba(16, 185, 129, 0.34)');
+        areaGrad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+      } else {
+        areaGrad.addColorStop(0, 'rgba(244, 63, 94, 0.34)');
+        areaGrad.addColorStop(1, 'rgba(244, 63, 94, 0.0)');
+      }
+
+      var crosshairPlugin = {
+        id: 'verticalCrosshairPlugin',
+        afterDatasetsDraw: function (chart) {
+          var activeElements = chart.getActiveElements();
+          if (!activeElements || activeElements.length === 0) return;
+          var x = activeElements[0].element.x;
+          var topY = chart.chartArea.top;
+          var bottomY = chart.chartArea.bottom;
+          var c = chart.ctx;
+          c.save();
+          c.beginPath();
+          c.setLineDash([5, 5]);
+          c.lineWidth = 1.25;
+          c.strokeStyle = 'rgba(243, 244, 246, 0.35)';
+          c.moveTo(x, topY);
+          c.lineTo(x, bottomY);
+          c.stroke();
+          c.restore();
+        }
+      };
+
+      if (equityChartInstance) {
+        equityChartInstance.destroy();
+      }
+
+      equityChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Equity',
+            data: equitySeries,
+            borderColor: lineColor,
+            backgroundColor: areaGrad,
+            borderWidth: 2.4,
+            fill: true,
+            tension: 0.28,
+            pointRadius: labels.length > 25 ? 2 : 3.5,
+            pointHoverRadius: 6,
+            pointBackgroundColor: lineColor,
+            pointBorderColor: '#090a0f',
+            pointBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              enabled: true,
+              backgroundColor: 'rgba(15, 18, 28, 0.94)',
+              titleColor: '#f3f4f6',
+              bodyColor: '#e5e7eb',
+              borderColor: 'rgba(255, 255, 255, 0.14)',
+              borderWidth: 1,
+              padding: 10,
+              displayColors: false,
+              callbacks: {
+                label: function (context) {
+                  var idx = context.dataIndex;
+                  var eqVal = equitySeries[idx];
+                  var chgVal = changeSeries[idx];
+                  return [
+                    'Equity: ' + formatMoney(eqVal),
+                    'Perubahan: ' + formatSignedMoney(chgVal)
+                  ];
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.04)' },
+              ticks: { color: '#9ca3af', maxTicksLimit: 7, font: { family: 'Plus Jakarta Sans', size: 11 } }
+            },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.06)' },
+              ticks: {
+                color: '#9ca3af',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function (value) {
+                  return formatCompactMoney(value);
+                }
+              }
+            }
+          }
+        },
+        plugins: [crosshairPlugin]
+      });
+    }
+
+    function renderWinLossChart() {
+      var canvas = document.getElementById('winLossChartCanvas');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+
+      var m = computeMetrics();
+      var badge = document.getElementById('wldSummaryBadge');
+      if (badge) badge.textContent = m.winCount + 'W / ' + m.lossCount + 'L / ' + m.beCount + 'BE';
+
+      var total = m.winCount + m.lossCount + m.beCount;
+      var dataVals = total > 0 ? [m.winCount, m.lossCount, m.beCount] : [0, 0, 1];
+      var colors = total > 0 ? ['#10b981', '#f43f5e', '#6b7280'] : ['rgba(16,185,129,0.2)', 'rgba(244,63,94,0.2)', 'rgba(107,114,128,0.25)'];
+
+      var centerTextPlugin = {
+        id: 'doughnutCenterText',
+        afterDraw: function (chart) {
+          var chartArea = chart.chartArea;
+          if (!chartArea) return;
+          var cx = (chartArea.left + chartArea.right) / 2;
+          var cy = (chartArea.top + chartArea.bottom) / 2;
+          var c = chart.ctx;
+          c.save();
+          c.textAlign = 'center';
+          c.textBaseline = 'middle';
+
+          c.font = '700 22px "JetBrains Mono", monospace';
+          c.fillStyle = '#f3f4f6';
+          c.fillText(m.winRate.toFixed(1) + '%', cx, cy - 8);
+
+          c.font = '600 11px "Plus Jakarta Sans", sans-serif';
+          c.fillStyle = '#9ca3af';
+          c.fillText('Win Rate', cx, cy + 14);
+          c.restore();
+        }
+      };
+
+      if (winLossChartInstance) {
+        winLossChartInstance.destroy();
+      }
+
+      winLossChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Profit', 'Loss', 'Breakeven'],
+          datasets: [{
+            data: dataVals,
+            backgroundColor: colors,
+            borderColor: '#151824',
+            borderWidth: 3,
+            hoverOffset: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '74%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#d1d5db',
+                padding: 16,
+                usePointStyle: true,
+                pointStyleWidth: 10,
+                font: { family: 'Plus Jakarta Sans', size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 18, 28, 0.94)',
+              titleColor: '#f3f4f6',
+              bodyColor: '#e5e7eb',
+              borderColor: 'rgba(255, 255, 255, 0.14)',
+              borderWidth: 1,
+              callbacks: {
+                label: function (context) {
+                  if (total === 0) return 'Belum ada trade';
+                  var v = context.parsed;
+                  var pct = ((v / total) * 100).toFixed(1);
+                  return context.label + ': ' + v + ' (' + pct + '%)';
+                }
+              }
+            }
+          }
+        },
+        plugins: [centerTextPlugin]
+      });
+    }
+
+    /* =========================================================================
+       HISTORY TABLE & FILTER
+       ========================================================================= */
+    function setTypeFilter(type) {
+      activeTypeFilter = type;
+      var chips = document.querySelectorAll('.filter-chip');
+      for (var i = 0; i < chips.length; i++) {
+        if (chips[i].getAttribute('data-filter') === type) {
+          chips[i].classList.add('active');
+        } else {
+          chips[i].classList.remove('active');
+        }
+      }
+      renderHistoryTable();
+    }
+
+    function renderHistoryTable() {
+      var tbody = document.getElementById('historyTableBody');
+      if (!tbody) return;
+
+      var searchEl = document.getElementById('searchTradeInput');
+      var q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+
+      var list = appState.entries.slice().sort(function (a, b) {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+
+      var filtered = [];
+      for (var i = 0; i < list.length; i++) {
+        var item = list[i];
+        if (activeTypeFilter !== 'all' && item.type !== activeTypeFilter) continue;
+        if (q) {
+          var hay = ((item.pair || '') + ' ' + (item.notes || '') + ' ' + (item.tags || '') + ' ' + (item.type || '')).toLowerCase();
+          if (hay.indexOf(q) === -1) continue;
+        }
+        filtered.push(item);
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Tidak ada catatan yang cocok. Klik <b>Tambah Trade</b> untuk memulai.</div></td></tr>';
+        return;
+      }
+
+      var html = '';
+      for (var j = 0; j < filtered.length; j++) {
+        var e = filtered[j];
+        var typeBadge = '<span class="type-pill pill-trade"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trade</span>';
+        if (e.type === 'deposit') {
+          typeBadge = '<span class="type-pill pill-deposit"><i class="fa-solid fa-arrow-down"></i> Deposit</span>';
+        } else if (e.type === 'withdraw') {
+          typeBadge = '<span class="type-pill pill-withdraw"><i class="fa-solid fa-arrow-up"></i> Withdraw</span>';
+        }
+
+        var dirOutHtml = '<span style="color:var(--muted)">—</span>';
+        if (e.type === 'trade') {
+          var dirStr = e.direction ? escapeHtml(e.direction.toUpperCase()) : '';
+          var outCls = 'out-be';
+          var outLbl = 'BE';
+          if (e.outcome === 'win' || (!e.outcome && toNum(e.pnl, 0) > 0)) {
+            outCls = 'out-win';
+            outLbl = 'WIN';
+          } else if (e.outcome === 'loss' || (!e.outcome && toNum(e.pnl, 0) < 0)) {
+            outCls = 'out-loss';
+            outLbl = 'LOSS';
+          }
+          dirOutHtml = '<span class="mono" style="margin-right:6px">' + dirStr + '</span><span class="outcome-pill ' + outCls + '">' + outLbl + '</span>';
+        }
+
+        var signedVal = signedProfit(e);
+        var valClass = signedVal > 0 ? 'pos' : (signedVal < 0 ? 'neg' : 'neutral');
+
+        var notesCombined = escapeHtml(e.notes || '');
+        if (e.tags) {
+          notesCombined += (notesCombined ? ' · ' : '') + '<span style="color:#a5b4fc">#' + escapeHtml(e.tags) + '</span>';
+        }
+
+        html += '<tr>';
+        html += '  <td class="mono" style="font-size:0.78rem">' + formatDisplayDate(e.date) + '</td>';
+        html += '  <td>' + typeBadge + '</td>';
+        html += '  <td class="mono" style="font-weight:700">' + escapeHtml(e.pair || (e.type === 'deposit' ? 'Setoran Dana' : (e.type === 'withdraw' ? 'Penarikan Dana' : '-'))) + '</td>';
+        html += '  <td>' + dirOutHtml + '</td>';
+        html += '  <td class="mono ' + valClass + '" style="font-weight:700">' + formatSignedMoney(signedVal) + '</td>';
+        html += '  <td style="max-width:220px;color:var(--fg-subtle)">' + (notesCombined || '<span style="color:var(--muted)">-</span>') + '</td>';
+        html += '  <td>';
+        html += '    <div style="display:flex;gap:6px">';
+        html += '      <button type="button" class="btn-icon btn-xs" onclick="openTradeModal(\'' + escapeHtml(e.id) + '\')" title="Edit"><i class="fa-solid fa-pen"></i></button>';
+        html += '      <button type="button" class="btn-danger btn-xs" onclick="deleteEntry(\'' + escapeHtml(e.id) + '\')" title="Hapus"><i class="fa-solid fa-trash"></i></button>';
+        html += '    </div>';
+        html += '  </td>';
+        html += '</tr>';
+      }
+
+      tbody.innerHTML = html;
+    }
+
+    async function deleteEntry(id) {
+      var next = [];
+      for (var i = 0; i < appState.entries.length; i++) {
+        if (appState.entries[i].id !== id) next.push(appState.entries[i]);
+      }
+      appState.entries = next;
+      await saveState();
+      refreshAllUi();
+      showToast('Catatan berhasil dihapus.', 'info');
+    }
+
+    function refreshAllUi() {
+      renderStats();
+      renderChecklist('rules', 'rulesChecklist', 'rulesChip');
+      renderChecklist('sop', 'sopChecklist', 'sopChip');
+      renderSessions();
+      renderCharts();
+      renderHistoryTable();
+      renderSyncStatus();
+    }
+
+    /* =========================================================================
+       MODALS & LIGHTBOX
+       ========================================================================= */
+    function openModal(title, bodyHtml, footerHtml) {
+      var backdrop = document.getElementById('modalBackdrop');
+      var titleEl = document.getElementById('modalTitle');
+      var bodyEl = document.getElementById('modalBody');
+      var footerEl = document.getElementById('modalFooter');
+      if (!backdrop || !titleEl || !bodyEl || !footerEl) return;
+
+      titleEl.textContent = title;
+      bodyEl.innerHTML = bodyHtml;
+      footerEl.innerHTML = footerHtml || '<button type="button" class="btn-ghost" onclick="closeModal()">Tutup</button>';
+      backdrop.classList.add('open');
+    }
+
+    function closeModal() {
+      var backdrop = document.getElementById('modalBackdrop');
+      if (backdrop) backdrop.classList.remove('open');
+    }
+
+    function handleBackdropClick(ev) {
+      if (ev.target && ev.target.id === 'modalBackdrop') {
+        closeModal();
+      }
+    }
+
+    function openLightbox(src) {
+      var lb = document.getElementById('lightboxBackdrop');
+      var img = document.getElementById('lightboxImg');
+      if (!lb || !img) return;
+      img.src = src;
+      lb.classList.add('open');
+    }
+
+    function closeLightbox() {
+      var lb = document.getElementById('lightboxBackdrop');
+      if (lb) lb.classList.remove('open');
+    }
+
+    /* --- Trade / Deposit / Withdraw Modal --- */
+    function openTradeModal(editId) {
+      var editing = null;
+      if (editId) {
+        for (var i = 0; i < appState.entries.length; i++) {
+          if (appState.entries[i].id === editId) {
+            editing = appState.entries[i];
+            break;
+          }
+        }
+      }
+
+      var curType = editing ? editing.type : 'trade';
+      var curDate = editing && editing.date ? editing.date.slice(0, 16) : nowLocalDateTimeInput();
+      var curPair = editing ? (editing.pair || '') : '';
+      var curDir = editing ? (editing.direction || 'buy') : 'buy';
+      var curOutcome = editing ? (editing.outcome || 'win') : 'win';
+      var curPnl = editing ? String(editing.pnl) : '';
+      var curNotes = editing ? (editing.notes || '') : '';
+      var curTags = editing ? (editing.tags || '') : '';
+
+      var bodyHtml = '';
+      bodyHtml += '<div class="form-grid cols-2">';
+      bodyHtml += '  <div class="form-group">';
+      bodyHtml += '    <label class="form-label" for="mEntryType">Jenis Catatan</label>';
+      bodyHtml += '    <select id="mEntryType" class="form-select" onchange="toggleTradeFields()">';
+      bodyHtml += '      <option value="trade"' + (curType === 'trade' ? ' selected' : '') + '>Trade</option>';
+      bodyHtml += '      <option value="deposit"' + (curType === 'deposit' ? ' selected' : '') + '>Deposit</option>';
+      bodyHtml += '      <option value="withdraw"' + (curType === 'withdraw' ? ' selected' : '') + '>Withdraw</option>';
+      bodyHtml += '    </select>';
+      bodyHtml += '  </div>';
+      bodyHtml += '  <div class="form-group">';
+      bodyHtml += '    <label class="form-label" for="mEntryDate">Tanggal &amp; Waktu</label>';
+      bodyHtml += '    <input id="mEntryDate" type="datetime-local" class="form-control mono" value="' + escapeHtml(curDate) + '" />';
+      bodyHtml += '  </div>';
+      bodyHtml += '</div>';
+
+      bodyHtml += '<div id="tradeOnlyFields" class="form-grid cols-2" style="' + (curType !== 'trade' ? 'display:none' : '') + '">';
+      bodyHtml += '  <div class="form-group">';
+      bodyHtml += '    <label class="form-label" for="mEntryPair">Pair / Aset</label>';
+      bodyHtml += '    <input id="mEntryPair" type="text" class="form-control" placeholder="Contoh: XAUUSD, BTCUSDT, EURUSD" value="' + escapeHtml(curPair) + '" />';
+      bodyHtml += '  </div>';
+      bodyHtml += '  <div class="form-group">';
+      bodyHtml += '    <label class="form-label" for="mEntryDir">Arah &amp; Hasil</label>';
+      bodyHtml += '    <div style="display:flex;gap:8px">';
+      bodyHtml += '      <select id="mEntryDir" class="form-select">';
+      bodyHtml += '        <option value="buy"' + (curDir === 'buy' ? ' selected' : '') + '>Buy / Long</option>';
+      bodyHtml += '        <option value="sell"' + (curDir === 'sell' ? ' selected' : '') + '>Sell / Short</option>';
+      bodyHtml += '      </select>';
+      bodyHtml += '      <select id="mEntryOutcome" class="form-select" onchange="autoSyncOutcomeSign()">';
+      bodyHtml += '        <option value="win"' + (curOutcome === 'win' ? ' selected' : '') + '>Win</option>';
+      bodyHtml += '        <option value="loss"' + (curOutcome === 'loss' ? ' selected' : '') + '>Loss</option>';
+      bodyHtml += '        <option value="be"' + (curOutcome === 'be' ? ' selected' : '') + '>Breakeven</option>';
+      bodyHtml += '      </select>';
+      bodyHtml += '    </div>';
+      bodyHtml += '  </div>';
+      bodyHtml += '</div>';
+
+      bodyHtml += '<div class="form-group">';
+      bodyHtml += '  <label id="mPnlLabel" class="form-label" for="mEntryPnl">' + (curType === 'trade' ? 'Nominal P/L ($)' : 'Nominal Dana ($)') + '</label>';
+      bodyHtml += '  <input id="mEntryPnl" type="number" step="any" class="form-control mono" placeholder="Contoh: 125.50 atau -45.00" value="' + escapeHtml(curPnl) + '" />';
+      bodyHtml += '  <span id="mPnlHelper" class="helper-text">' + (curType === 'trade' ? 'Gunakan tanda minus (-) untuk Loss, positif untuk Profit, atau 0 untuk Breakeven.' : 'Masukkan nominal positif untuk Deposit atau Withdraw.') + '</span>';
+      bodyHtml += '</div>';
+
+      bodyHtml += '<div class="form-grid cols-2">';
+      bodyHtml += '  <div class="form-group">';
+      bodyHtml += '    <label class="form-label" for="mEntryTags">Tag / Setup</label>';
+      bodyHtml += '    <input id="mEntryTags" type="text" class="form-control" placeholder="Contoh: London-OB, Breakout" value="' + escapeHtml(curTags) + '" />';
+      bodyHtml += '  </div>';
+      bodyHtml += '  <div class="form-group">';
+      bodyHtml += '    <label class="form-label" for="mEntryNotes">Catatan Eksekusi</label>';
+      bodyHtml += '    <input id="mEntryNotes" type="text" class="form-control" placeholder="Evaluasi emosi &amp; disiplin SOP..." value="' + escapeHtml(curNotes) + '" />';
+      bodyHtml += '  </div>';
+      bodyHtml += '</div>';
+
+      var footerHtml = '';
+      footerHtml += '<button type="button" class="btn-ghost" onclick="closeModal()">Batal</button>';
+      footerHtml += '<button type="button" class="btn-primary" onclick="saveTradeModal(\'' + escapeHtml(editId || '') + '\')"><i class="fa-solid fa-check"></i> Simpan</button>';
+
+      openModal(editing ? 'Edit Catatan' : 'Tambah Trade / Kas', bodyHtml, footerHtml);
+    }
+
+    function toggleTradeFields() {
+      var tEl = document.getElementById('mEntryType');
+      var tradeBox = document.getElementById('tradeOnlyFields');
+      var lbl = document.getElementById('mPnlLabel');
+      var hlp = document.getElementById('mPnlHelper');
+      if (!tEl) return;
+
+      var val = tEl.value;
+      if (tradeBox) tradeBox.style.display = val === 'trade' ? 'grid' : 'none';
+      if (lbl) lbl.textContent = val === 'trade' ? 'Nominal P/L ($)' : 'Nominal Dana ($)';
+      if (hlp) {
+        hlp.textContent = val === 'trade'
+          ? 'Gunakan tanda minus (-) untuk Loss, positif untuk Profit, atau 0 untuk Breakeven.'
+          : 'Masukkan nominal positif untuk ' + (val === 'deposit' ? 'Deposit' : 'Withdraw') + '.';
+      }
+    }
+
+    function autoSyncOutcomeSign() {
+      var outEl = document.getElementById('mEntryOutcome');
+      var pnlEl = document.getElementById('mEntryPnl');
+      if (!outEl || !pnlEl) return;
+      var v = parseFloat(pnlEl.value);
+      if (isNaN(v)) return;
+      if (outEl.value === 'win' && v < 0) pnlEl.value = String(Math.abs(v));
+      if (outEl.value === 'loss' && v > 0) pnlEl.value = String(-Math.abs(v));
+      if (outEl.value === 'be') pnlEl.value = '0';
+    }
+
+    async function saveTradeModal(editId) {
+      var type = document.getElementById('mEntryType').value;
+      var dateVal = document.getElementById('mEntryDate').value || nowLocalDateTimeInput();
+      var pair = (document.getElementById('mEntryPair') ? document.getElementById('mEntryPair').value : '').trim();
+      var direction = document.getElementById('mEntryDir') ? document.getElementById('mEntryDir').value : 'buy';
+      var outcome = document.getElementById('mEntryOutcome') ? document.getElementById('mEntryOutcome').value : 'be';
+      var rawPnl = parseFloat(document.getElementById('mEntryPnl').value);
+      var notes = (document.getElementById('mEntryNotes').value || '').trim();
+      var tags = (document.getElementById('mEntryTags').value || '').trim();
+
+      if (isNaN(rawPnl) || !isFinite(rawPnl)) {
+        showToast('Masukkan nominal angka yang valid.', 'error');
+        return;
+      }
+
+      if (type !== 'trade' && rawPnl <= 0) {
+        showToast('Nominal deposit/withdraw harus lebih besar dari 0.', 'error');
+        return;
+      }
+
+      if (type === 'trade') {
+        if (rawPnl > 0) outcome = 'win';
+        else if (rawPnl < 0) outcome = 'loss';
+        else outcome = 'be';
+        if (!pair) pair = 'PAIR';
+      } else {
+        pair = type === 'deposit' ? 'Deposit' : 'Withdraw';
+        rawPnl = Math.abs(rawPnl);
+      }
+
+      var isoDate = new Date(dateVal).toISOString();
+
+      if (editId) {
+        for (var i = 0; i < appState.entries.length; i++) {
+          if (appState.entries[i].id === editId) {
+            appState.entries[i] = {
+              id: editId,
+              type: type,
+              date: isoDate,
+              pair: pair,
+              direction: direction,
+              outcome: outcome,
+              pnl: rawPnl,
+              notes: notes,
+              tags: tags
+            };
+            break;
+          }
+        }
+        showToast('Catatan berhasil diperbarui.', 'success');
+      } else {
+        appState.entries.push({
+          id: generateId('tr'),
+          type: type,
+          date: isoDate,
+          pair: pair,
+          direction: direction,
+          outcome: outcome,
+          pnl: rawPnl,
+          notes: notes,
+          tags: tags
+        });
+        showToast('Catatan berhasil ditambahkan.', 'success');
+      }
+
+      await saveState();
+      closeModal();
+      refreshAllUi();
+    }
+
+    /* --- Balance Modal --- */
+    function openBalanceModal() {
+      var bodyHtml = '';
+      bodyHtml += '<div class="form-group">';
+      bodyHtml += '  <label class="form-label" for="mInitialBalance">Saldo Awal ($)</label>';
+      bodyHtml += '  <input id="mInitialBalance" type="number" step="any" class="form-control mono" value="' + escapeHtml(appState.initialBalance) + '" />';
+      bodyHtml += '  <span class="helper-text">Equity dihitung otomatis: Saldo Awal + Total Deposit − Total Withdraw + Total P/L.</span>';
+      bodyHtml += '</div>';
+
+      var footerHtml = '';
+      footerHtml += '<button type="button" class="btn-ghost" onclick="closeModal()">Batal</button>';
+      footerHtml += '<button type="button" class="btn-primary" onclick="saveBalanceModal()"><i class="fa-solid fa-check"></i> Simpan Saldo</button>';
+
+      openModal('Atur Saldo Awal', bodyHtml, footerHtml);
+    }
+
+    async function saveBalanceModal() {
+      var val = parseFloat(document.getElementById('mInitialBalance').value);
+      if (isNaN(val) || !isFinite(val)) {
+        showToast('Saldo awal tidak valid.', 'error');
+        return;
+      }
+      appState.initialBalance = val;
+      await saveState();
+      closeModal();
+      refreshAllUi();
+      showToast('Saldo awal diperbarui.', 'success');
+    }
+
+    /* --- SOP & Rules Manager Modal --- */
+    function openSopModal(tab) {
+      var activeTab = tab === 'sop' ? 'sop' : 'rules';
+      var list = activeTab === 'rules' ? appState.rules : appState.sop;
+
+      var bodyHtml = '';
+      bodyHtml += '<div style="display:flex;gap:8px;margin-bottom:4px">';
+      bodyHtml += '  <button type="button" class="' + (activeTab === 'rules' ? 'btn-primary btn-xs' : 'btn-ghost btn-xs') + '" onclick="openSopModal(\'rules\')">Trading Rules</button>';
+      bodyHtml += '  <button type="button" class="' + (activeTab === 'sop' ? 'btn-primary btn-xs' : 'btn-ghost btn-xs') + '" onclick="openSopModal(\'sop\')">SOP Entry</button>';
+      bodyHtml += '  <button type="button" class="btn-ghost btn-xs" style="margin-left:auto" onclick="resetChecklistChecks(\'' + activeTab + '\')"><i class="fa-solid fa-rotate-left"></i> Reset Centang</button>';
+      bodyHtml += '</div>';
+
+      bodyHtml += '<div class="form-group">';
+      bodyHtml += '  <label class="form-label" for="mNewSopText">Tambah Item Baru (' + (activeTab === 'rules' ? 'Trading Rules' : 'SOP Entry') + ')</label>';
+      bodyHtml += '  <div style="display:flex;gap:8px">';
+      bodyHtml += '    <input id="mNewSopText" type="text" class="form-control" placeholder="Tulis aturan atau langkah SOP..." />';
+      bodyHtml += '    <button type="button" class="btn-primary" onclick="addSopItem(\'' + activeTab + '\')"><i class="fa-solid fa-plus"></i></button>';
+      bodyHtml += '  </div>';
+      bodyHtml += '</div>';
+
+      bodyHtml += '<div class="checklist">';
+      if (list.length === 0) {
+        bodyHtml += '<div class="empty-state" style="padding:16px">Belum ada item.</div>';
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          var item = list[i];
+          var imgCount = Array.isArray(item.images) ? item.images.length : 0;
+          bodyHtml += '<div class="check-item">';
+          bodyHtml += '  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">';
+          bodyHtml += '    <span class="check-text">' + escapeHtml(item.text) + '</span>';
+          bodyHtml += '    <div style="display:flex;gap:6px;flex-shrink:0">';
+          bodyHtml += '      <label class="btn-ghost btn-xs" style="cursor:pointer" title="Tambah Gambar Referensi">';
+          bodyHtml += '        <i class="fa-solid fa-image"></i> <span>' + imgCount + '</span>';
+          bodyHtml += '        <input type="file" accept="image/*" style="display:none" onchange="attachSopImage(event, \'' + activeTab + '\', \'' + escapeHtml(item.id) + '\')" />';
+          bodyHtml += '      </label>';
+          bodyHtml += '      <button type="button" class="btn-danger btn-xs" onclick="deleteSopItem(\'' + activeTab + '\', \'' + escapeHtml(item.id) + '\')" title="Hapus"><i class="fa-solid fa-trash"></i></button>';
+          bodyHtml += '    </div>';
+          bodyHtml += '  </div>';
+
+          if (imgCount > 0) {
+            bodyHtml += '<div class="thumb-grid" style="padding-left:0">';
+            for (var k = 0; k < item.images.length; k++) {
+              var s = item.images[k];
+              bodyHtml += '<div style="position:relative">';
+              bodyHtml += '  <img class="thumb-img" src="' + escapeHtml(s) + '" alt="Ref" onclick="openLightbox(\'' + escapeHtml(s) + '\')" />';
+              bodyHtml += '  <button type="button" class="btn-danger" style="position:absolute;top:2px;right:2px;width:18px;height:18px;padding:0;font-size:10px;border-radius:4px" onclick="removeSopImage(\'' + activeTab + '\', \'' + escapeHtml(item.id) + '\', ' + k + ')" title="Hapus gambar">×</button>';
+              bodyHtml += '</div>';
+            }
+            bodyHtml += '</div>';
+          }
+          bodyHtml += '</div>';
+        }
+      }
+      bodyHtml += '</div>';
+
+      var footerHtml = '<button type="button" class="btn-primary" onclick="closeModal()">Selesai</button>';
+      openModal('Kelola SOP & Trading Rules', bodyHtml, footerHtml);
+    }
+
+    async function addSopItem(kind) {
+      var input = document.getElementById('mNewSopText');
+      if (!input) return;
+      var txt = input.value.trim();
+      if (!txt) {
+        showToast('Teks item tidak boleh kosong.', 'error');
+        return;
+      }
+      var list = kind === 'rules' ? appState.rules : appState.sop;
+      list.push({
+        id: generateId(kind === 'rules' ? 'r' : 's'),
+        text: txt,
+        checked: false,
+        images: []
+      });
+      await saveState();
+      refreshAllUi();
+      openSopModal(kind);
+      showToast('Item berhasil ditambahkan.', 'success');
+    }
+
+    async function deleteSopItem(kind, id) {
+      var list = kind === 'rules' ? appState.rules : appState.sop;
+      var next = [];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id !== id) next.push(list[i]);
+      }
+      if (kind === 'rules') appState.rules = next;
+      else appState.sop = next;
+      await saveState();
+      refreshAllUi();
+      openSopModal(kind);
+      showToast('Item dihapus.', 'info');
+    }
+
+    async function resetChecklistChecks(kind) {
+      var list = kind === 'rules' ? appState.rules : appState.sop;
+      for (var i = 0; i < list.length; i++) {
+        list[i].checked = false;
+      }
+      await saveState();
+      refreshAllUi();
+      openSopModal(kind);
+      showToast('Centang direset.', 'info');
+    }
+
+    function attachSopImage(ev, kind, id) {
+      var file = ev.target && ev.target.files && ev.target.files[0];
+      if (!file) return;
+      if (file.size > 2.5 * 1024 * 1024) {
+        showToast('Ukuran gambar maksimal 2.5 MB.', 'error');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = async function (e) {
+        var dataUrl = e.target && e.target.result;
+        if (!dataUrl || typeof dataUrl !== 'string') return;
+        var list = kind === 'rules' ? appState.rules : appState.sop;
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].id === id) {
+            if (!Array.isArray(list[i].images)) list[i].images = [];
+            list[i].images.push(dataUrl);
+            break;
+          }
+        }
+        await saveState();
+        refreshAllUi();
+        openSopModal(kind);
+        showToast('Gambar referensi ditambahkan.', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function removeSopImage(kind, id, idx) {
+      var list = kind === 'rules' ? appState.rules : appState.sop;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id && Array.isArray(list[i].images)) {
+          list[i].images.splice(idx, 1);
+          break;
+        }
+      }
+      await saveState();
+      refreshAllUi();
+      openSopModal(kind);
+    }
+
+ /* =========================================================================
+       DATA MANAGEMENT, EXPORT & IMPORT (JSON, CSV, XLSX)
+       ========================================================================= */
+    function openDataModal() {
+      var bodyHtml = '';
+      bodyHtml += '<p style="font-size:0.86rem;color:var(--fg-subtle)">Kelola backup lokal, export spreadsheet, atau bersihkan seluruh data jurnal di perangkat ini.</p>';
+      bodyHtml += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+      bodyHtml += '  <button type="button" class="btn-ghost" onclick="exportJson()"><i class="fa-solid fa-file-code"></i> Export JSON</button>';
+      bodyHtml += '  <button type="button" class="btn-ghost" onclick="exportCsv()"><i class="fa-solid fa-file-csv"></i> Export CSV</button>';
+      bodyHtml += '  <button type="button" class="btn-ghost" onclick="exportXlsx()"><i class="fa-solid fa-file-excel"></i> Export Excel (.xlsx)</button>';
+      bodyHtml += '  <button type="button" class="btn-ghost" onclick="triggerImportFile()"><i class="fa-solid fa-file-import"></i> Import File</button>';
+      bodyHtml += '</div>';
+      bodyHtml += '<hr style="border:none;border-top:1px solid var(--border);margin:4px 0" />';
+      bodyHtml += '<div class="form-group">';
+      bodyHtml += '  <label class="form-label" style="color:#fda4af">Zona Berbahaya</label>';
+      bodyHtml += '  <button type="button" class="btn-danger" onclick="clearAllJournalData()"><i class="fa-solid fa-trash-can"></i> Hapus Semua Data Jurnal</button>';
+      bodyHtml += '</div>';
+
+      openModal('Manajemen Data', bodyHtml, '<button type="button" class="btn-ghost" onclick="closeModal()">Tutup</button>');
+    }
+
+    function exportDataMenu() {
+      var bodyHtml = '';
+      bodyHtml += '<p style="font-size:0.86rem;color:var(--fg-subtle)">Pilih format file untuk mengunduh data jurnal trading Anda:</p>';
+      bodyHtml += '<div style="display:flex;flex-direction:column;gap:10px">';
+      bodyHtml += '  <button type="button" class="btn-ghost" style="justify-content:flex-start;padding:12px 14px" onclick="exportXlsx();closeModal()"><i class="fa-solid fa-file-excel" style="color:#34d399"></i> Excel Workbook (.xlsx) — Riwayat &amp; Ringkasan</button>';
+      bodyHtml += '  <button type="button" class="btn-ghost" style="justify-content:flex-start;padding:12px 14px" onclick="exportCsv();closeModal()"><i class="fa-solid fa-file-csv" style="color:#60a5fa"></i> Comma Separated Values (.csv)</button>';
+      bodyHtml += '  <button type="button" class="btn-ghost" style="justify-content:flex-start;padding:12px 14px" onclick="exportJson();closeModal()"><i class="fa-solid fa-file-code" style="color:#fbbf24"></i> Full Backup JSON (.json) — Termasuk SOP &amp; Saldo</button>';
+      bodyHtml += '</div>';
+      openModal('Export Data', bodyHtml, '<button type="button" class="btn-ghost" onclick="closeModal()">Batal</button>');
+    }
+
+    function downloadBlob(content, filename, mimeType) {
+      var blob = new Blob([content], { type: mimeType });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function exportJson() {
+      var payload = JSON.stringify(appState, null, 2);
+      downloadBlob(payload, 'trading-journal-backup-' + new Date().toISOString().slice(0, 10) + '.json', 'application/json');
+      showToast('Backup JSON berhasil diunduh.', 'success');
+    }
+
+    function csvEscape(v) {
+      var s = String(v === null || v === undefined ? '' : v);
+      if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    function exportCsv() {
+      var headers = ['id', 'date', 'type', 'pair', 'direction', 'outcome', 'pnl', 'signed_pnl', 'tags', 'notes'];
+      var lines = [headers.join(',')];
+      for (var i = 0; i < appState.entries.length; i++) {
+        var e = appState.entries[i];
+        var row = [
+          csvEscape(e.id),
+          csvEscape(e.date),
+          csvEscape(e.type),
+          csvEscape(e.pair),
+          csvEscape(e.direction),
+          csvEscape(e.outcome),
+          csvEscape(e.pnl),
+          csvEscape(signedProfit(e)),
+          csvEscape(e.tags),
+          csvEscape(e.notes)
+        ];
+        lines.push(row.join(','));
+      }
+      downloadBlob(lines.join('\n'), 'trading-journal-' + new Date().toISOString().slice(0, 10) + '.csv', 'text/csv;charset=utf-8;');
+      showToast('File CSV berhasil diunduh.', 'success');
+    }
+
+    function exportXlsx() {
+      if (typeof XLSX === 'undefined') {
+        showToast('Pustaka SheetJS (XLSX) belum tersedia. Menggunakan export CSV.', 'error');
+        exportCsv();
+        return;
+      }
+      var rows = [];
+      for (var i = 0; i < appState.entries.length; i++) {
+        var e = appState.entries[i];
+        rows.push({
+          Tanggal: e.date,
+          Jenis: e.type,
+          Pair: e.pair || '',
+          Arah: e.direction || '',
+          Hasil: e.outcome || '',
+          Nominal: toNum(e.pnl, 0),
+          Efek_Equity: signedProfit(e),
+          Tag: e.tags || '',
+          Catatan: e.notes || ''
+        });
+      }
+      var ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ Info: 'Belum ada data transaksi' }]);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Riwayat');
+      XLSX.writeFile(wb, 'trading-journal-' + new Date().toISOString().slice(0, 10) + '.xlsx');
+      showToast('File Excel (.xlsx) berhasil diunduh.', 'success');
+    }
+
+    function triggerImportFile() {
+      var inp = document.getElementById('importFileInput');
+      if (inp) {
+        inp.value = '';
+        inp.click();
+      }
+    }
+
+    function handleImportFile(ev) {
+      var file = ev.target && ev.target.files && ev.target.files[0];
+      if (!file) return;
+
+      var name = file.name.toLowerCase();
+      if (name.slice(-5) === '.xlsx' || name.slice(-4) === '.xls') {
+        if (typeof XLSX === 'undefined') {
+          showToast('Pustaka SheetJS (XLSX) belum tersedia.', 'error');
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = async function (e) {
+          try {
+            var data = new Uint8Array(e.target.result);
+            var wb = XLSX.read(data, { type: 'array' });
+            var firstSheet = wb.Sheets[wb.SheetNames[0]];
+            var jsonRows = XLSX.utils.sheet_to_json(firstSheet);
+            await importRowsArray(jsonRows);
+          } catch (err) {
+            showToast('Gagal membaca file Excel.', 'error');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+
+      var textReader = new FileReader();
+      textReader.onload = async function (e) {
+        var rawText = String(e.target.result || '');
+        if (name.slice(-5) === '.json') {
+          try {
+            var parsed = JSON.parse(rawText);
+            if (parsed && Array.isArray(parsed.entries)) {
+              var mergedDrive = appState.drive;
+              appState = normalizeState(parsed);
+              if (!appState.drive.scriptUrl && mergedDrive.scriptUrl) {
+                appState.drive = mergedDrive;
+              }
+              await saveState();
+              refreshAllUi();
+              showToast('Backup JSON berhasil diimport.', 'success');
+            } else {
+              showToast('Format JSON tidak dikenali.', 'error');
+            }
+          } catch (err2) {
+            showToast('File JSON tidak valid.', 'error');
+          }
+        } else {
+          var lines = rawText.split(/\r?\n/).filter(function (l) { return l.trim().length > 0; });
+          if (lines.length < 2) {
+            showToast('File CSV kosong atau tidak valid.', 'error');
+            return;
+          }
+          var headers = lines[0].split(',').map(function (h) { return h.trim().replace(/^"|"$/g, '').toLowerCase(); });
+          var rows = [];
+          for (var i = 1; i < lines.length; i++) {
+            var cols = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
+            var obj = {};
+            for (var c = 0; c < headers.length; c++) {
+              obj[headers[c]] = (cols[c] || '').trim().replace(/^"|"$/g, '').replace(/""/g, '"');
+            }
+            rows.push(obj);
+          }
+          await importRowsArray(rows);
+        }
+      };
+      textReader.readAsText(file);
+    }
+
+    async function importRowsArray(rows) {
+      var added = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var rawPnl = parseFloat(r.nominal !== undefined ? r.nominal : (r.pnl !== undefined ? r.pnl : r.Nominal));
+        if (isNaN(rawPnl) || !isFinite(rawPnl)) continue;
+        var rawType = String(r.jenis || r.type || r.Jenis || 'trade').toLowerCase();
+        var t = (rawType === 'deposit' || rawType === 'withdraw') ? rawType : 'trade';
+        var dt = r.tanggal || r.date || r.Tanggal || new Date().toISOString();
+        appState.entries.push({
+          id: generateId('imp'),
+          type: t,
+          date: new Date(dt).toISOString(),
+          pair: String(r.pair || r.Pair || (t === 'trade' ? 'PAIR' : t)).trim(),
+          direction: String(r.arah || r.direction || r.Arah || 'buy').toLowerCase(),
+          outcome: String(r.hasil || r.outcome || r.Hasil || (rawPnl > 0 ? 'win' : (rawPnl < 0 ? 'loss' : 'be'))).toLowerCase(),
+          pnl: rawPnl,
+          tags: String(r.tag || r.tags || r.Tag || ''),
+          notes: String(r.catatan || r.notes || r.Catatan || '')
+        });
+        added++;
+      }
+      await saveState();
+      refreshAllUi();
+      showToast(added + ' baris data berhasil diimport.', 'success');
+    }
+
+    async function clearAllJournalData() {
+      appState.entries = [];
+      await saveState();
+      closeModal();
+      refreshAllUi();
+      showToast('Semua riwayat trade & kas telah dihapus.', 'info');
+    }
+
+    /* =========================================================================
+       GOOGLE DRIVE / APPS SCRIPT SYNC ("JournalBackup" & "TradesLog")
+       ========================================================================= */
+    function renderSyncStatus() {
+      var dot = document.getElementById('syncDot');
+      var txt = document.getElementById('syncStatusText');
+      if (!dot || !txt) return;
+
+      var d = appState.drive || {};
+      dot.className = 'status-dot';
+
+      if (!d.scriptUrl) {
+        dot.classList.add('yellow');
+        txt.textContent = 'Drive: Belum dikonfigurasi';
+        return;
+      }
+
+      if (d.lastSyncStatus === 'ok') {
+        dot.classList.add('green');
+        var timeLbl = d.lastSyncAt ? ' · ' + formatDisplayDate(d.lastSyncAt) : '';
+        txt.textContent = 'Drive: Tersinkron' + timeLbl;
+      } else if (d.lastSyncStatus === 'err') {
+        dot.classList.add('red');
+        txt.textContent = 'Drive: Gagal sync (' + (d.lastSyncMessage || 'Error') + ')';
+      } else {
+        dot.classList.add('yellow');
+        txt.textContent = 'Drive: Siap disinkronkan';
+      }
+    }
+
+    function openDriveModal() {
+      var d = appState.drive || {};
+      var bodyHtml = '';
+      bodyHtml += '<p style="font-size:0.84rem;color:var(--fg-subtle)">Hubungkan ke Google Apps Script Web App untuk menyimpan snapshot JSON di tab <b>JournalBackup</b> dan rekap di tab <b>TradesLog</b>.</p>';
+      bodyHtml += '<div class="form-group">';
+      bodyHtml += '  <label class="form-label" for="mDriveUrl">Google Apps Script Web App URL</label>';
+      bodyHtml += '  <input id="mDriveUrl" type="url" class="form-control mono" placeholder="https://script.google.com/macros/s/.../exec" value="' + escapeHtml(d.scriptUrl || '') + '" />';
+      bodyHtml += '</div>';
+      bodyHtml += '<div class="form-group">';
+      bodyHtml += '  <label class="form-label" for="mDriveToken">Secret Token (Opsional)</label>';
+      bodyHtml += '  <input id="mDriveToken" type="password" class="form-control mono" placeholder="Token keamanan script" value="' + escapeHtml(d.secretToken || '') + '" />';
+      bodyHtml += '</div>';
+      bodyHtml += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+      bodyHtml += '  <button type="button" class="btn-ghost btn-xs" onclick="saveDriveModal(true);pushToDrive()"><i class="fa-solid fa-cloud-arrow-up"></i> Simpan &amp; Push</button>';
+      bodyHtml += '  <button type="button" class="btn-ghost btn-xs" onclick="saveDriveModal(true);pullFromDrive()"><i class="fa-solid fa-cloud-arrow-down"></i> Simpan &amp; Pull</button>';
+      bodyHtml += '</div>';
+
+      var footerHtml = '';
+      footerHtml += '<button type="button" class="btn-ghost" onclick="closeModal()">Batal</button>';
+      footerHtml += '<button type="button" class="btn-primary" onclick="saveDriveModal(false)"><i class="fa-solid fa-check"></i> Simpan</button>';
+
+      openModal('Konfigurasi Google Drive Sync', bodyHtml, footerHtml);
+    }
+
+    async function saveDriveModal(silentClose) {
+      var urlEl = document.getElementById('mDriveUrl');
+      var tokEl = document.getElementById('mDriveToken');
+      if (!urlEl) return;
+
+      var url = urlEl.value.trim();
+      var token = tokEl ? tokEl.value.trim() : '';
+
+      appState.drive.scriptUrl = url;
+      appState.drive.secretToken = token;
+      if (url && appState.drive.lastSyncStatus === 'idle') {
+        appState.drive.lastSyncMessage = 'Siap disinkronkan';
+      } else if (!url) {
+        appState.drive.lastSyncStatus = 'idle';
+        appState.drive.lastSyncMessage = 'Belum dikonfigurasi';
+      }
+
+      await saveState();
+      renderSyncStatus();
+      if (!silentClose) {
+        closeModal();
+        showToast('Konfigurasi Drive disimpan.', 'success');
+      }
+    }
+
+    function buildDrivePayload() {
+      var mappedTrades = (appState.entries || []).map(function (e) {
+        var d = new Date(e.date);
+        var utcHour = isNaN(d.getTime()) ? 0 : d.getUTCHours();
+        var sessions = [];
+        if (utcHour >= 0 && utcHour < 9) sessions.push('Asia');
+        if (utcHour >= 7 && utcHour < 16) sessions.push('London');
+        if (utcHour >= 13 && utcHour < 22) sessions.push('New York');
+
+        return {
+          id: e.id || '',
+          date: e.date || '',
+          type: String(e.type || 'trade').toUpperCase(),
+          pair: e.pair || '',
+          side: e.direction || '',
+          outcome: e.outcome || '',
+          session: sessions.join(' / '),
+          amount: signedProfit(e),
+          notes: (e.notes || '') + (e.tags ? ' [' + e.tags + ']' : '')
+        };
+      });
+
+      return Object.assign({}, appState, {
+        trades: mappedTrades
+      });
+    }
+
+    async function pushToDrive() {
+      var d = appState.drive || {};
+      if (!d.scriptUrl) {
+        showToast('Konfigurasikan URL Google Apps Script terlebih dahulu.', 'error');
+        openDriveModal();
+        return;
+      }
+
+      showToast('Mengirim data ke Google Drive...', 'info');
+      try {
+        var secretVal = d.secretToken || '';
+        var res = await fetch(d.scriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'push',
+            secret: secretVal,
+            token: secretVal,
+            data: buildDrivePayload()
+          })
+        });
+        var json = await res.json();
+        if (json && json.ok) {
+          appState.drive.lastSyncAt = new Date().toISOString();
+          appState.drive.lastSyncStatus = 'ok';
+          appState.drive.lastSyncMessage = 'Push berhasil';
+          await saveState(true);
+          renderSyncStatus();
+          showToast('Berhasil Push ke Drive (' + (json.syncedCount || 0) + ' baris rekap).', 'success');
+        } else {
+          throw new Error((json && json.error) || 'Respons tidak valid');
+        }
+      } catch (err) {
+        appState.drive.lastSyncStatus = 'err';
+        appState.drive.lastSyncMessage = err.message || 'Koneksi gagal';
+        await saveState(true);
+        renderSyncStatus();
+        showToast('Gagal Push ke Drive: ' + (err.message || 'Cek URL / CORS'), 'error');
+      }
+    }
+
+    async function pullFromDrive() {
+      var d = appState.drive || {};
+      if (!d.scriptUrl) {
+        showToast('Konfigurasikan URL Google Apps Script terlebih dahulu.', 'error');
+        openDriveModal();
+        return;
+      }
+
+      showToast('Mengambil data dari Google Drive...', 'info');
+      try {
+        var secretVal = encodeURIComponent(d.secretToken || '');
+        var sep = d.scriptUrl.indexOf('?') === -1 ? '?' : '&';
+        var queryUrl = d.scriptUrl + sep + 'action=pull&secret=' + secretVal + '&token=' + secretVal + '&t=' + Date.now();
+        var res = await fetch(queryUrl);
+        var json = await res.json();
+        if (json && json.ok && json.data) {
+          var keptUrl = d.scriptUrl;
+          var keptToken = d.secretToken;
+          appState = normalizeState(json.data);
+          appState.drive.scriptUrl = keptUrl;
+          appState.drive.secretToken = keptToken;
+          appState.drive.lastSyncAt = new Date().toISOString();
+          appState.drive.lastSyncStatus = 'ok';
+          appState.drive.lastSyncMessage = 'Pull berhasil';
+          await saveState(true);
+          refreshAllUi();
+          showToast('Berhasil Pull data dari Google Drive.', 'success');
+        } else {
+          throw new Error((json && json.error) || 'Data kosong di Drive');
+        }
+      } catch (err) {
+        appState.drive.lastSyncStatus = 'err';
+        appState.drive.lastSyncMessage = err.message || 'Gagal pull';
+        await saveState(true);
+        renderSyncStatus();
+        showToast('Gagal Pull dari Drive: ' + (err.message || 'Cek URL'), 'error');
+      }
+    }
+
+    /* =========================================================================
+       INITIALIZATION
+       ========================================================================= */
+    window.addEventListener('DOMContentLoaded', async function () {
+      checkLibraries();
+      await initStorageAndLoad();
+      startSessionTimer();
+      refreshAllUi();
+    });
+
+    window.addEventListener('resize', function () {
+      if (equityChartInstance) equityChartInstance.resize();
+      if (winLossChartInstance) winLossChartInstance.resize();
+    });
+  </script>
+</body>
+</html>
